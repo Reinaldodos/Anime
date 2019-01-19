@@ -99,14 +99,6 @@ ELO <- function(Table, Results)
   N = 1
   Rank = COMPARAISON(Scores = Results %>%
                        split(f = .$Score), SEUIL = N, Table = Table)
-  # while (Rank$goodness.of.fit[3] > 0.05)
-  # {
-  # Rank$goodness.of.fit[3] %>% print()
-  #   N = N + 1
-  #   paste("N =", N) %>% print()
-  #   Rank = COMPARAISON(Scores = Results %>%
-  #                        split(f = .$Score), SEUIL = N, Table = Table)
-  # }
 
   Rank$goodness.of.fit %>% print()
 
@@ -196,7 +188,7 @@ SCORING <- function(url)
   colnames(Table) = c("Player", "Rating", "Note", "url")
 
   Results = fread(
-    input = "Combats menes.csv",
+    input = "anidb jugement comparatif/Combats menes.csv",
     sep = "|",
     encoding = "UTF-8",
     colClasses = "character"
@@ -229,7 +221,7 @@ SOULIST <- function(Table, Sous_Liste)
   names(Table) = nom_Table
 
   Results = fread(
-    input = "Combats menes.csv",
+    input = "anidb jugement comparatif/Combats menes.csv",
     sep = "|",
     encoding = "UTF-8",
     colClasses = "character"
@@ -271,7 +263,7 @@ New_Round = function(Sous_Liste)
   # sauver la réserve
   write.table(
     x = Resultats,
-    file = "Combats menes.csv",
+    file = "anidb jugement comparatif/Combats menes.csv",
     append = T,
     quote = F,
     sep = "|",
@@ -330,7 +322,7 @@ SCRIPT = function()
 {
   Related =
     fread(
-      input = "Combats menes.csv",
+      input = "anidb jugement comparatif/Combats menes.csv",
       sep = "|",
       encoding = "UTF-8",
       colClasses = "character"
@@ -341,7 +333,7 @@ SCRIPT = function()
     New_Round(Sous_Liste = Related %>% sample_n(1))
     Related =
       fread(
-        input = "Combats menes.csv",
+        input = "anidb jugement comparatif/Combats menes.csv",
         sep = "|",
         encoding = "UTF-8",
         colClasses = "character"
@@ -350,7 +342,7 @@ SCRIPT = function()
 
   Oldies =
     fread(
-      input = "Combats menes.csv",
+      input = "anidb jugement comparatif/Combats menes.csv",
       sep = "|",
       encoding = "UTF-8",
       colClasses = "character"
@@ -371,7 +363,7 @@ SCRIPT = function()
     Newbies %>% New_Round()
     Newbies =
       fread(
-        input = "Combats menes.csv",
+        input = "anidb jugement comparatif/Combats menes.csv",
         sep = "|",
         encoding = "UTF-8",
         colClasses = "character"
@@ -401,7 +393,7 @@ SCRIPT2 <- function(url) {
   "Import des résultats" %>% print
 
   Results = fread(
-    input = "Combats menes.csv",
+    input = "anidb jugement comparatif/Combats menes.csv",
     sep = "|",
     encoding = "UTF-8",
     colClasses = "character"
@@ -422,10 +414,6 @@ SCRIPT2 <- function(url) {
     arrange(Delta) %>%
     data.table()
 
-  Combats =
-    bind_rows(Combats %>% group_by(An1) %>% slice(1:1) %>% ungroup,
-              Combats %>% group_by(An2) %>% slice(1:1) %>% ungroup) %>% unique()
-
   "Choix de la sélection" %>% print
   Selection =
     bind_rows(Results %>%
@@ -435,11 +423,22 @@ SCRIPT2 <- function(url) {
     summarise(n = sum(n)) %>%
     filter(Title %in% Table$Player) %>%
     arrange(n) %>%
-    filter(n == min(n)) %>% distinct(Title) %>% unlist(use.names = FALSE)
+    mutate(Goal = lead(n))
+
+  Nb_matchs =
+    Selection %>% mutate(Match = Goal - n) %>%
+    filter(n == min(n)) %>%
+    summarise(Match = max(Match)) %>% pull(Match)
+
+  Selection = Selection %>% filter(n == min(n)) %>% pull(Title)
 
   Selection %>%
-    map(.f = ~ filter(.data = Combats, An1==. | An2==.)) %>%
-    map(.f = filter, Delta == min(Delta)) %>%
+    map(.f = ~ filter(.data = Combats,
+                      str_detect(string = str_c(An1, An2),
+                                 pattern = .))) %>%
+    map(.f = arrange, Delta) %>%
+    map(.f = slice, 1:Nb_matchs) %>%
+    bind_rows() %>% split(f = .$Delta) %>%
     map(.f = select, -Delta) %>%
     map(New_Round)
 

@@ -1,5 +1,5 @@
 Results = fread(
-  input = "Combats menes.csv",
+  input = "anidb jugement comparatif/Combats menes.csv",
   sep = "|",
   encoding = "UTF-8",
   colClasses = "character"
@@ -57,7 +57,7 @@ bind_rows(test %>%
 
 test %>%
   write.table(
-    file = "Combats menes.csv",
+    file = "anidb jugement comparatif/Combats menes.csv",
     append = F,
     quote = F,
     sep = "|",

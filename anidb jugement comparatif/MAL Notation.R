@@ -1,8 +1,7 @@
 url = "http://graph.anime.plus/Altermedia/list,anime"
 pacman::p_load(tidyverse, rio, data.table)
-source("FONCTIONS.R")
-LIST <- function(url)
-{
+source("anidb jugement comparatif/FONCTIONS.R")
+LIST <- function(url){
   pacman::p_load(rvest)
   pacman::p_load(data.table)
   Table = url %>%
@@ -40,10 +39,10 @@ Table = SCORING(url)
 
 toto =
   readRDS(file =
-            "Reseau")
+            "anidb jugement comparatif/Reseau")
 
 franchises =
-  readRDS(file = "Franchises")
+  readRDS(file = "anidb jugement comparatif/Franchises")
 
 foo =
   rename(toto, An1 = Ref, An2 = Title) %>%
@@ -55,7 +54,7 @@ foo =
 
 # SCRIPT ------------------------------------------------------------------
 SCRIPT()
-source(file = "Purger les combats.R", encoding = "UTF-8")
+source(file = "anidb jugement comparatif/Purger les combats.R", encoding = "UTF-8")
 SCRIPT2(url = url)
 
 url %>% CHANGES %>% View()
