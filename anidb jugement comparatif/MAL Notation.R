@@ -53,8 +53,9 @@ foo =
   unique()
 
 # SCRIPT ------------------------------------------------------------------
-SCRIPT()
 source(file = "anidb jugement comparatif/Purger les combats.R", encoding = "UTF-8")
+SCRIPT()
 SCRIPT2(url = url)
 
-url %>% CHANGES %>% View()
+FINAL = url %>% CHANGES
+FINAL %>% arrange(Avant, Note) %>% View()

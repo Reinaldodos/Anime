@@ -73,7 +73,9 @@ COMPARAISON <- function(Scores, SEUIL, Table)
                 rename(Win = An2, Lose = An1)) %>%
     group_by(Win, Lose) %>%
     count() %>% ungroup() %>%
-    left_join(x = expand.grid(Win = Table$Player, Lose = Table$Player)) %>%
+    left_join(x = expand.grid(Win = Table$Player,
+                              Lose = Table$Player),
+              by = c("Win", "Lose")) %>%
     filter(Win != Lose) %>%
     arrange(Win, Lose) %>%
     mutate(n = if_else(
@@ -434,11 +436,10 @@ SCRIPT2 <- function(url) {
 
   Selection %>%
     map(.f = ~ filter(.data = Combats,
-                      str_detect(string = str_c(An1, An2),
-                                 pattern = .))) %>%
+                      An1%in%. | An2 %in% .)) %>%
     map(.f = arrange, Delta) %>%
     map(.f = slice, 1:Nb_matchs) %>%
-    bind_rows() %>% split(f = .$Delta) %>%
+    bind_rows() %>% unique %>% split(f = .$Delta) %>%
     map(.f = select, -Delta) %>%
     map(New_Round)
 

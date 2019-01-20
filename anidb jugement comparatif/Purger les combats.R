@@ -1,3 +1,4 @@
+# Import des données ------------------------------------------------------
 Results = fread(
   input = "anidb jugement comparatif/Combats menes.csv",
   sep = "|",
@@ -10,52 +11,43 @@ Results = fread(
          An2 %in% Table$Player) %>%
   data.table()
 
-Relation =
-  bind_rows(foo %>%
-              group_by(Title = An1) %>% count(),
-            foo %>%
-              group_by(Title = An2) %>% count()) %>%
-  summarise(Nb = sum(n)) %>%
-  filter(Title %in% Table$Player)
+Relation = inner_join(Results, foo, by = c("An1", "An2"))
+Results = anti_join(x = Results, y = foo, by = c("An1", "An2"))
 
-Selection =
-  bind_rows(Results %>%
-      group_by(Title = An1) %>% count(),
-    Results %>%
-      group_by(Title = An2) %>% count()) %>%
-  summarise(n = sum(n)) %>%
-  filter(Title %in% Table$Player)
+Combats =
+  crossing(Table, Table) %>%
+  mutate(Delta = abs(Rating - Rating1)) %>%
+  inner_join(x = LISTER(Table), by = c("An1" = "Player", "An2" = "Player1"))
 
-SELECAO =
-  Table %>% left_join(y = Selection, by = c("Player" = "Title")) %>%
-  split(f = .$Player) %>%
-  map(
-    .f = ~ tidyr::crossing(., Table) %>%
-      filter(Player != Player1) %>%
-      mutate(Delta = abs(Rating - Rating1)) %>%
-      mutate(Rank = dense_rank(Delta)) %>%
-      filter(Rank <= max(Relation$Nb))
-  ) %>% bind_rows()
 
+# Nettoyage des combats menés hors Relations ------------------------------
+test =
+  Combats %>%
+  inner_join(y = Results, by = c("An1", "An2"))
 
 test =
-  bind_rows(semi_join(x = Results,
-                      y = SELECAO,
-                      by = c("An1" = "Player", "An2" = "Player1")),
-            semi_join(x = Results,
-                      y = SELECAO,
-                      by = c("An2" = "Player", "An1" = "Player1")),
-            inner_join(foo, Results)) %>% unique()
+  Table$Player %>% set_names() %>%
+  map(.f = ~ filter(.data = test,
+                    An1 %in% . | An2 %in% .)) %>%
+  map(.f = mutate, Cut = mean(Delta, na.rm = TRUE)) %>%
+  map(.f = filter, Delta < Cut) %>%
+  bind_rows() %>%
+  select(names(test))
 
-bind_rows(test %>%
-            group_by(Title = An1) %>% count(),
-          test %>%
-            group_by(Title = An2) %>% count()) %>%
-  summarise(n = sum(n)) %>%
-  filter(Title %in% Table$Player) %>%
-  arrange(n) %>% View()
 
-test %>%
+
+# Exclusion des combats incohérents ---------------------------------------
+SELECAO=
+  test %>% distinct(An1, An2, Score) %>%
+  bind_rows(Relation) %>%
+  inner_join(y = Combats, by = c("An1", "An2")) %>%
+  mutate(PREV = case_when(
+    Rating > Rating1~1,
+    Rating1>Rating~2
+  )) %>%
+  filter(Score==PREV)
+
+SELECAO %>% select(names(Results)) %>%
   write.table(
     file = "anidb jugement comparatif/Combats menes.csv",
     append = F,
@@ -65,3 +57,4 @@ test %>%
     col.names = T,
     fileEncoding = "UTF-8"
   )
+
