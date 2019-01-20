@@ -58,4 +58,4 @@ SCRIPT()
 SCRIPT2(url = url)
 
 FINAL = url %>% CHANGES
-FINAL %>% arrange(Avant, Note) %>% View()
+FINAL %>% arrange(Note, Avant) %>% View()
