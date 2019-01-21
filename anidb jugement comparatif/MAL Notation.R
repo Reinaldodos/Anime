@@ -53,9 +53,18 @@ foo =
   unique()
 
 # SCRIPT ------------------------------------------------------------------
-source(file = "anidb jugement comparatif/Purger les combats.R", encoding = "UTF-8")
-SCRIPT()
-SCRIPT2(url = url)
+JOB <- function(url) {
+  source(file = "anidb jugement comparatif/Purger les combats.R", encoding = "UTF-8")
+  SCRIPT()
 
-FINAL = url %>% CHANGES
-FINAL %>% arrange(Note, Avant) %>% View()
+  EGUENNE = readline(prompt = "Encore? o/n \t")
+  while (EGUENNE == "o") {
+    SCRIPT2(url = url)
+    EGUENNE = readline(prompt = "Encore? o/n \t")
+  }
+
+  FINAL = url %>% CHANGES
+  return(FINAL)
+}
+
+FINAL = JOB(url = url)
