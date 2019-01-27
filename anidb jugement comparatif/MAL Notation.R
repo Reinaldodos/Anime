@@ -33,7 +33,7 @@ LIST <- function(url){
   )
   return(Table[, .(Player, Rating, Note, url)])
 }
-# source(file = "MAL recommandationsv2.R")
+# source(file = "anidb jugement comparatif/MAL recommandationsv2.R")
 # Chargement des données ------------------------------------------------------------------
 Table = SCORING(url)
 

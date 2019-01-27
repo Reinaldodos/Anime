@@ -77,7 +77,7 @@ Recommandation <- function(url)
   return(list(output, FINAL2))
 }
 
-source("Franchises.R")
+source("anidb jugement comparatif/Franchises.R")
 
 toto = Recommandation("http://graph.anime.plus/Altermedia/list,anime")
 
