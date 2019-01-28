@@ -418,14 +418,19 @@ SCRIPT2 <- function(url) {
 
   "Choix de la sélection" %>% print
   Selection =
-    bind_rows(Results %>%
-                group_by(Title = An1) %>% count(),
-              Results %>%
-                group_by(Title = An2) %>% count()) %>%
-    summarise(n = sum(n)) %>%
-    filter(Title %in% Table$Player) %>%
+    bind_rows(
+      Results %>%
+        group_by(Title = An1) %>% count(),
+      Results %>%
+        group_by(Title = An2) %>% count()
+    ) %>%
+    summarise(n = sum(n) %>% as.double()) %>%
+    left_join(x = Table %>% select(Title = Player)) %>%
+    mutate(n = case_when(is.na(n) ~ 0 ,
+                         TRUE ~ n)) %>%
     arrange(n) %>%
     mutate(Goal = lead(n))
+
 
   Nb_matchs =
     Selection %>% mutate(Match = Goal - n) %>%

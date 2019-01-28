@@ -2,7 +2,7 @@ pacman::p_load(rvest, tidyverse, data.table)
 Liste_Anime =
   "https://myanimelist.net/anime/season" %>%
   read_html()
-source("FONCTIONS.R")
+source("Season watch/FONCTIONS.R")
 
 # SCRIPT ------------------------------------------------------------------
 print("FETCHEZ LA VACHE!")
@@ -18,6 +18,12 @@ input =
 output = input %>% purrr::transpose()  %>% map(compact)
 input = output$result
 
+while(length(output$error)){
+  output = output$error %>% names %>%set_names() %>% map(safe_read)
+  input = list(input, output$result)
+}
+
+input = input %>% flatten
 Sequels = input %>% map(PREQUEL_DESUKA)
 Mangas = input %>% map(SOURCING) %>% compact
 
