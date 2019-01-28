@@ -328,7 +328,9 @@ SCRIPT = function()
       sep = "|",
       encoding = "UTF-8",
       colClasses = "character"
-    ) %>% anti_join(x = foo)
+    ) %>%
+    anti_join(x = foo, by = c("An1", "An2")) %>%
+    inner_join(franchises, by = c("An1", "An2"))
 
   while (Related %>% nrow() > 0)
   {
@@ -339,7 +341,8 @@ SCRIPT = function()
         sep = "|",
         encoding = "UTF-8",
         colClasses = "character"
-      ) %>% anti_join(x = foo)
+      ) %>% anti_join(x = foo, by = c("An1", "An2")) %>%
+      inner_join(franchises, by = c("An1", "An2"))
   }
 
   Oldies =
