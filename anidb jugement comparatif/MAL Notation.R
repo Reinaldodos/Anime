@@ -54,7 +54,10 @@ foo =
 
 # SCRIPT ------------------------------------------------------------------
 JOB <- function(url) {
+  "Purger les combats" %>% cat()
   source(file = "anidb jugement comparatif/Purger les combats.R", encoding = "UTF-8")
+
+  "Où sont mes frères?" %>% cat()
   SCRIPT()
 
   EGUENNE = readline(prompt = "Encore? o/n \t")

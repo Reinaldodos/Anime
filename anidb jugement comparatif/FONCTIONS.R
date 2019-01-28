@@ -344,37 +344,6 @@ SCRIPT = function()
       ) %>% anti_join(x = foo, by = c("An1", "An2")) %>%
       inner_join(franchises, by = c("An1", "An2"))
   }
-
-  Oldies =
-    fread(
-      input = "anidb jugement comparatif/Combats menes.csv",
-      sep = "|",
-      encoding = "UTF-8",
-      colClasses = "character"
-    ) %>% select(An1, An2) %>% as.list() %>% flatten_chr() %>% unique()
-
-  Newbies =
-    Table %>%
-    filter(!Player %in% Oldies)
-
-  if (nrow(Newbies) > 1) {
-    Newbies = Newbies %>% LISTER()
-  } else{
-    Newbies = NULL %>% as.data.table()
-  }
-
-  while (Newbies %>% nrow > 0)
-  {
-    Newbies %>% New_Round()
-    Newbies =
-      fread(
-        input = "anidb jugement comparatif/Combats menes.csv",
-        sep = "|",
-        encoding = "UTF-8",
-        colClasses = "character"
-      ) %>% anti_join(x = Newbies)
-
-  }
 }
 
 SCORE_FINAL <- function(url) {
