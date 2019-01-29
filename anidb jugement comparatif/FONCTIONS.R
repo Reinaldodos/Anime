@@ -415,7 +415,9 @@ SCRIPT2 <- function(url) {
     map(.f = ~ filter(.data = Combats,
                       An1%in%. | An2 %in% .)) %>%
     map(.f = arrange, Delta) %>%
-    map(.f = slice, 1:Nb_matchs) %>% unique() %>%
+    map(.f = slice, 1:Nb_matchs) %>%
+    bind_rows() %>% unique() %>%
+    split(f = paste(.$Delta, .$An1, .$An2)) %>%
     map(.f = select, An1, An2) %>%
     map(New_Round)
 
