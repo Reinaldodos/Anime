@@ -34,31 +34,10 @@ LIST <- function(url){
   return(Table[, .(Player, Rating, Note, url)])
 }
 # source(file = "anidb jugement comparatif/MAL recommandationsv2.R")
-# Chargement des données ------------------------------------------------------------------
-Table = SCORING(url)
 
-toto =
-  readRDS(file =
-            "anidb jugement comparatif/Reseau")
-
-franchises =
-  readRDS(file = "anidb jugement comparatif/Franchises")
-
-foo =
-  rename(toto, An1 = Ref, An2 = Title) %>%
-  bind_rows(rename(toto, An2 = Ref, An1 = Title)) %>%
-  select(An1, An2) %>%
-  bind_rows(franchises) %>%
-  inner_join(LISTER(Table)) %>%
-  unique()
-
-# SCRIPT ------------------------------------------------------------------
 JOB <- function(url) {
-  "Purger les combats" %>% cat()
+  "Purger les combats" %>% cat(sep = "\n")
   source(file = "anidb jugement comparatif/Purger les combats.R", encoding = "UTF-8")
-
-  "Où sont mes frères?" %>% cat()
-  SCRIPT()
 
   EGUENNE = readline(prompt = "Encore? o/n \t")
   while (EGUENNE == "o") {
