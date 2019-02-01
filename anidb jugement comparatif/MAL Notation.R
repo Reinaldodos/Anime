@@ -22,18 +22,9 @@ LIST <- function(url){
   Table = Table[!is.na(Table$R)]
 
   colnames(Table) = c("S", "Player", "Rating", "Diff", "Note", "url")
-  STAR = "★"
-  Table$Player = gsub(pattern = STAR,
-                      replacement = " ",
-                      x = Table$Player)
-  Table$Player = gsub(
-    pattern = Table[grep(pattern = "Ghoul ", Table$Player)]$Player,
-    replacement = "Tokyo Ghoul vA",
-    x = Table$Player
-  )
+
   return(Table[, .(Player, Rating, Note, url)])
 }
-# source(file = "anidb jugement comparatif/MAL recommandationsv2.R")
 
 JOB <- function(url) {
   "Purger les combats" %>% cat(sep = "\n")

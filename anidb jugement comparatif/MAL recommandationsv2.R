@@ -1,94 +1,65 @@
-require(tidyverse)
-require(rvest)
-require(data.table)
-LIST <- function(url)
-{
-  require(data.table)
-  require(rvest)
-  Table = url %>%
-    read_html() %>%
-    html_table()
+pacman::p_load(rvest, data.table, tidyverse)
+source("Mangapark MAL sync/Fonctions.R")
 
-  Table = Table[[1]] %>% data.table()
-  Table = Table[, .(Title, R)]
-  Table$R = as.integer(Table$R)
+url = "https://myanimelist.net/animelist/Altermedia"
 
-  Table$url = url %>% read_html() %>% html_nodes(css = "#main a") %>% html_attr(name = "href")
-  Table$Title = url %>% read_html() %>% html_nodes(css = "#main a") %>% html_text()
-  # Table = Table[!is.na(Table$R)]
-  return(Table)
+MAList =
+  url %>% read_html() %>%
+  html_nodes(css = ".animetitle")
+
+MAL_names = MAList %>% html_text() %>% map_chr(trimws)
+
+MAL_url = MAList %>% html_attr(name = "href") %>% str_c("https://myanimelist.net", .)
+
+output = SAFE_FETCH(input = MAL_url)
+# Franchises --------------------------------------------------------------
+
+Fetch_related <- function(url) {
+  Relations =
+    url %>%
+    html_nodes(css = ".anime_detail_related_anime a")
+
+  toto = Relations %>%
+    html_attr(name = "href") %>% str_detect(pattern = "anime")
+  Relations %>% html_text() %>% .[toto] %>%
+    return()
 }
 
-SimiScrap <- function(toto)
-{
-  toto = toto %>% data.table()
-  test = toto$url %>%
-    read_html() %>% html_nodes(css = ".horiznav_active") %>% html_attr(name = "href")
-  test = paste(test, "/userrecs", sep = "")
+Related =
+  output %>% map(Fetch_related) %>% map(data.table) %>% bind_rows(.id = "url") %>% rename(Title = V1) %>%
+  mutate(Recs = 999)
 
-  noms = test %>%
-    read_html() %>% html_nodes(css = "#content div:nth-child(2) strong") %>% html_text()
-  nombres = test %>%
-    read_html() %>% html_nodes(css = ".js-similar-recommendations-button strong") %>%
-    html_text() %>%
-    c(rep(x = 0, times = length(noms)))
+# Recommandations ---------------------------------------------------------
+Recs =
+  output %>%
+  map(
+    .f = ~ html_nodes(x = ., css = "#horiznav_nav a") %>%
+      html_attr(name = "href") %>% str_subset(pattern = "userrecs")
+  ) %>%
+  compact() %>%
+  map(data.table) %>% bind_rows(.id = "url") %>% rename(url_recs = V1)
 
-  if (length(noms) > 0)
-  {
-    Simi = cbind.data.frame(
-      Ref = toto$Title,
-      Title = noms[1:length(nombres)],
-      Recs = as.numeric(nombres) + 1,
-      Rate = toto$R
-    ) %>% data.table()
-    # head(Simi) %>% print()
-    return(Simi[!is.na(Title)])
-  }
+url_recs = Recs$url_recs %>% SAFE_FETCH()
+
+FETCH_Recs <- function(url) {
+  Strong =
+    url %>%
+    html_nodes(css = "strong") %>% html_text()
+
+  LOG = Strong %>% as.integer %>% map_lgl(is.na)
+  OK = data.table(Title = Strong[LOG])
+  OK$Recs = Strong[!LOG] %>% as.integer() %>% c(., rep(0, nrow(OK))) %>% .[1:nrow(OK)]
+
+  OK %>% mutate(Recs = Recs + 1) %>% return()
 }
 
-Recommandation <- function(url)
-{
-  url = "http://graph.anime.plus/Altermedia/list,anime"
-  Table = LIST(url)
+Recs =
+  url_recs %>% map(FETCH_Recs) %>% bind_rows(.id = "url_recs") %>%
+  inner_join(Recs, by = "url_recs")
 
-  require(foreach)
-  output = foreach(n = 1:nrow(Table), .combine = rbind) %do%
-  {
-    paste(paste(n, nrow(Table), sep = "/"),
-          Table[n]$Title, sep = ": ") %>%
-      print()
-    # while Simiscrap merde do Simiscrap
-    foo = try(SimiScrap(Table[n]))
-    while (class(foo) ==  "try-error")
-    {
-      foo = try(SimiScrap(Table[n]))
-    }
-    return(foo)
-  }
+FINAL =
+  bind_rows(Related, Recs) %>%
+  inner_join(cbind.data.frame(url = MAL_url, Ref = MAL_names), by = "url") %>%
+  select(Ref, Title, Recs)
 
-  colnames(output) = c("Ref", "Title", "Recs", "Rate")
-  output$Recs = as.integer(output$Recs)
-  output$Rate = as.integer(output$Rate)
-  output$weight = output$Recs * (as.integer(output$Rate) - mean(Table$R))
-
-  condition = output$Title %in% Table$Title
-  FINAL2 = output[condition] %>%
-    data.table()
-  return(list(output, FINAL2))
-}
-
-source("anidb jugement comparatif/Franchises.R")
-
-toto = Recommandation("http://graph.anime.plus/Altermedia/list,anime")
-
-MAL = "http://graph.anime.plus/Altermedia/list,anime" %>% LIST() %>% .$Title
-
-franchises %>%
-  rename(Ref = An1,
-         Title = An2) %>%
-  anti_join(y = toto[[1]], by = c("Ref", "Title")) %>%
-  mutate(Recs = 999) %>%
-  bind_rows(toto[[1]]) %>%
-  unique() %>%
-  filter(Ref %in% MAL) %>%
-  saveRDS(file = "anidb jugement comparatif/Reseau")
+FINAL %>% saveRDS(file = "anidb jugement comparatif/Reseau")

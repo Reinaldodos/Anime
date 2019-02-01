@@ -59,8 +59,7 @@ CLUSTERING = function(Table, url){
   pacman::p_load(igraph)
   table_graphe =
     readRDS(file =
-              "anidb jugement comparatif/Reseau") %>%
-    filter(Title %in% Ref)
+              "anidb jugement comparatif/Reseau")
 
   graphe =
     table_graphe %>% select(Ref, Title) %>% as.matrix() %>%
@@ -74,7 +73,7 @@ CLUSTERING = function(Table, url){
     communities() %>%
     map(.f = ~ data.table(Player = .)) %>%
     bind_rows(.id = "Groupe") %>%
-    left_join(Table, by = "Player") %>%
+    left_join(x = Table, by = "Player") %>%
     mutate(Groupe = case_when(is.na(Groupe) ~ 0,
                               TRUE ~ Groupe %>% as.numeric())) %>%
     inner_join(LIST(url) %>% select(Player), by = "Player")
@@ -202,38 +201,6 @@ FINALE <- function(url) {
 
 }
 
-LIST <- function(url) {
-  pacman::p_load(rvest)
-  pacman::p_load(data.table)
-  Table = url %>%
-    read_html() %>%
-    html_table()
-
-  pacman::p_load(dplyr)
-  Table = Table[[1]] %>%
-    mutate(
-      R = suppressWarnings(as.integer(R)),
-      Diff = as.numeric(Diff),
-      Note = R - Diff
-    ) %>%
-    data.table()
-
-  Table$url = url %>% read_html() %>% html_nodes(css = "#main a") %>% html_attr(name = "href")
-  Table$Title = url %>% read_html() %>% html_nodes(css = "#main a") %>% html_text()
-  Table = Table[!is.na(Table$R)]
-
-  colnames(Table) = c("S", "Player", "Rating", "Diff", "Note", "url")
-  STAR = "★"
-  Table$Player = gsub(pattern = STAR,
-                      replacement = " ",
-                      x = Table$Player)
-  Table$Player = gsub(
-    pattern = Table[grep(pattern = "Ghoul ", Table$Player)]$Player,
-    replacement = "Tokyo Ghoul vA",
-    x = Table$Player
-  )
-  return(Table[, .(Player, Rating, Note, url)])
-}
 
 LISTER <- function(Table) {
   pacman::p_load(dplyr)
@@ -275,14 +242,14 @@ New_Round = function(Sous_Liste) {
   # les accoler à la réserve
   # sauver la réserve
   write.table(
+    fileEncoding = "UTF-8",
     x = Resultats,
     file = "anidb jugement comparatif/Combats menes.csv",
     append = T,
     quote = F,
     sep = "|",
     row.names = F,
-    col.names = T,
-    fileEncoding = "UTF-8"
+    col.names = T
   )
 }
 
