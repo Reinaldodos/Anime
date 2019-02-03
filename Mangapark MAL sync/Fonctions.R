@@ -1,3 +1,36 @@
+FETCH_Recs <- function(url) {
+  Strong =
+    url %>%
+    html_nodes(css = "strong") %>% html_text()
+
+  LOG = Strong %>% as.integer %>% map_lgl(is.na)
+  OK = data.table(Title = Strong[LOG])
+  OK$Recs = Strong[!LOG] %>% as.integer() %>% c(., rep(0, nrow(OK))) %>% .[1:nrow(OK)]
+
+  OK %>% mutate(Recs = Recs + 1) %>% return()
+}
+
+Fetch_related <- function(url) {
+  Relations =
+    url %>%
+    html_nodes(css = ".anime_detail_related_anime a")
+
+  toto = Relations %>%
+    html_attr(name = "href") %>% str_detect(pattern = "anime")
+  Relations %>% html_text() %>% .[toto] %>%
+    return()
+}
+
+Manga_ka <- function(url) {
+  Manga_desuka =
+    url %>%
+    html_nodes(css = ".js-scrollfix-bottom div") %>%
+    html_text() %>% grep(pattern = "Type", value = T) %>%
+    str_detect(pattern = "Manga")
+  if (Manga_desuka)
+    return(Manga_desuka)
+}
+
 SAFE_FETCH <- function(input) {
   pacman::p_load(rvest, purrr)
   safe_read = safely(.f = read_html, quiet = FALSE)
@@ -15,14 +48,4 @@ SAFE_FETCH <- function(input) {
     input = list(input, output$result) %>% flatten
   }
   return(input)
-}
-
-Manga_ka <- function(url) {
-  Manga_desuka =
-    url %>%
-    html_nodes(css = ".js-scrollfix-bottom div") %>%
-    html_text() %>% grep(pattern = "Type", value = T) %>%
-    str_detect(pattern = "Manga")
-  if (Manga_desuka)
-    return(Manga_desuka)
 }

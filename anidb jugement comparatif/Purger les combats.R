@@ -1,20 +1,22 @@
 # Import des données ------------------------------------------------------
 Table = SCORING(url)
 
-Results = fread(
-  input = "anidb jugement comparatif/Combats menes.csv",
-  sep = "|",
-  encoding = "UTF-8",
-  colClasses = "character"
-) %>%
-  mutate_all(trimws) %>%
-  filter(Score %in% 1:2,
-         An1 %in% Table$Player,
-         An2 %in% Table$Player) %>%
-  data.table()
+Table$Base64 =
+  Table$Player %>% map_chr(BASE64ENCODE)
+
+Results =
+  fread(input = "anidb jugement comparatif/Combats menes.csv",
+        sep = "|",
+        encoding = "UTF-8",
+        colClasses = "character") %>%
+  mutate_all(trimws)  %>%
+  inner_join(y = Table %>% select(AN1 = Base64, An1 = Player),
+             by = "AN1") %>%
+  inner_join(y = Table %>% select(AN2 = Base64, An2 = Player),
+             by = "AN2")
 
 Combats =
-  crossing(Table, Table) %>%
+  tidyr::crossing(Table, Table) %>%
   mutate(Delta = abs(Rating - Rating1)) %>%
   inner_join(x = LISTER(Table),
              by = c("An1" = "Player", "An2" = "Player1"))
@@ -28,9 +30,11 @@ SELECAO =
   filter(Score == PREV) %>% unique()
 
 "A exclure: " %>% cat(sep = "\n")
-anti_join(x = Results, y = SELECAO, by = c("An1", "An2", "Score")) %>% print
+anti_join(x = Results, y = SELECAO, by = c("An1", "An2", "Score")) %>%
+  select(An1, An2, Score) %>%
+  print
 
-SELECAO %>% select(names(Results)) %>%
+SELECAO %>% select(AN1, AN2, Score) %>%
   write.table(
     file = "anidb jugement comparatif/Combats menes.csv",
     append = F,

@@ -1,30 +1,42 @@
+BASE64ENCODE = function(string) {
+  pacman::p_load(base64enc)
+  string %>% charToRaw() %>% base64encode() %>% return()
+}
+
+BASE64DECODE = function(string) {
+  pacman::p_load(base64enc)
+  string %>% base64decode() %>% rawToChar() %>% return()
+}
+
 BATTLE <- function(Table, Clusters) {
+  Table$Base64 =
+    Table$Player %>% map_chr(BASE64ENCODE)
   "Import des résultats" %>% cat(sep = "\n")
 
-  Results = fread(
-    input = "anidb jugement comparatif/Combats menes.csv",
-    sep = "|",
-    encoding = "UTF-8",
-    colClasses = "character", fill = TRUE,
-  ) %>%
-    mutate_all(trimws) %>%
-    filter(Score %in% 1:2,
-           An1%in%Table$Player,
-           An2 %in% Table$Player) %>%
-    data.table()
+  Results =
+    fread(input = "anidb jugement comparatif/Combats menes.csv",
+          sep = "|",
+          encoding = "UTF-8",
+          colClasses = "character") %>%
+    mutate_all(trimws)  %>%
+    inner_join(y = Table %>% select(AN1 = Base64, An1 = Player),
+               by = "AN1") %>%
+    inner_join(y = Table %>% select(AN2 = Base64, An2 = Player),
+               by = "AN2")
 
   safe_COMBAT = safely(COMBATTANTS)
 
-  Bataille =
+  Bataille_Clusters =
     Table %>%
     inner_join(Clusters, by = "Player") %>% split(f = .$Groupe) %>%
     map(.f = safe_COMBAT, Results = Results) %>% compact %>%
     map_df(.f = ~ .$result) %>% unique()
 
-  if (nrow(Bataille) == 0)
-    Bataille = Table %>% COMBATTANTS(Results = Results)
+  Bataille = Table %>% COMBATTANTS(Results = Results)
 
-  return(Bataille)
+  bind_rows(Bataille, Bataille_Clusters) %>%
+    select(contains("An"), contains("Base")) %>% unique() %>%
+    return()
 }
 
 CHANGES <- function(url) {
@@ -82,6 +94,7 @@ CLUSTERING = function(Table, url){
 }
 
 COMBATTANTS <- function(Table, Results) {
+  pacman::p_load(tidyr)
   Combats =
     tidyr::crossing(Table, Table) %>% data.table %>%
     rename(An1 = Player, An2 = Player1) %>%
@@ -152,55 +165,11 @@ ELO <- function(Table, Results) {
   return(foo)
 }
 
-Enough_desuka <- function(Table) {
-  pacman::p_load(data.table)
-
-  LISTES =
-    Table %>%
-    mutate(Groupe =
-             cut(x = Table$Rating,
-                 breaks = 10))
-
-  LISTES =
-    LISTES %>%
-    group_by(Groupe) %>%
-    count() %>%
-    filter(n > 1) %>%
-    inner_join(y = LISTES, by = "Groupe")
-
-  pacman::p_load(foreach)
-  Sous_Liste =
-    foreach(liste = split(x = LISTES, f = as.character(LISTES$Groupe))) %do%
-    {
-      SOULIST(Table = Table[, .(Player, Rating)], Sous_Liste = LISTER(liste)) %>%
-        slice(1:length(liste))
-    } %>%
-    rbindlist()
-
-  return(Sous_Liste)
-}
-
 FIGHT <- function(Match) {
   Match = data.table(Match)
   Match$Score = readline(paste(Match$An1, "VS", Match$An2, ": ", sep = " "))
   return(Match)
 }
-
-FINALE <- function(url) {
-  Table =
-    url %>%
-    SCORING()
-
-  output =
-    Table %>% Standardisation_Score() %>%
-    inner_join(LIST(url) %>% select(Player, Rating), by = "Player") %>%
-    filter(Rating.x != Rating.y)
-
-  output %>%
-    print()
-
-}
-
 
 LISTER <- function(Table) {
   pacman::p_load(dplyr)
@@ -241,9 +210,10 @@ New_Round = function(Sous_Liste) {
 
   # les accoler à la réserve
   # sauver la réserve
-  write.table(
+  Resultats %>%
+    select(AN1, AN2, Score) %>%
+    write.table(
     fileEncoding = "UTF-8",
-    x = Resultats,
     file = "anidb jugement comparatif/Combats menes.csv",
     append = T,
     quote = F,
@@ -251,45 +221,6 @@ New_Round = function(Sous_Liste) {
     row.names = F,
     col.names = T
   )
-}
-
-Order_past_matches <- function(Results) {
-  Fichier = Results %>%
-    split(f = Results$Score)
-
-  pacman::p_load(dplyr)
-  Fichier1 = Fichier$`1`
-  Fichier1$Score = Fichier1$Score %>% as.numeric()
-
-  Fichier1_inverse =
-    Fichier$`1` %>%
-    select(An2, An1) %>%
-    mutate(Score = 0) %>%
-    data.table()
-
-
-  Fichier2 =
-    Fichier$`2` %>%
-    select(An2, An1) %>%
-    mutate(Score = 1) %>%
-    data.table()
-
-  Fichier2_inverse =
-    Fichier$`2` %>%
-    select(An1, An2) %>%
-    mutate(Score = 0) %>%
-    data.table()
-
-  names(Fichier1) = names(Results)
-  names(Fichier1_inverse) = names(Results)
-  names(Fichier2) = names(Results)
-  names(Fichier2_inverse) = names(Results)
-
-  output =
-    bind_rows(Fichier1, Fichier1_inverse, Fichier2, Fichier2_inverse) %>%
-    data.table()
-
-  return(output)
 }
 
 SCORE_FINAL <- function(url) {
@@ -313,17 +244,19 @@ SCORING <- function(url) {
   Table = LIST(url)
   colnames(Table) = c("Player", "Rating", "Note", "url")
 
-  Results = fread(
-    input = "anidb jugement comparatif/Combats menes.csv",
-    sep = "|",
-    encoding = "UTF-8",
-    colClasses = "character"
-  ) %>%
-    mutate_all(trimws) %>%
-    filter(Score %in% 1:2,
-           An1%in%Table$Player,
-           An2%in%Table$Player)
+  Table$Base64 =
+    Table$Player %>% map_chr(BASE64ENCODE)
 
+  Results =
+    fread(input = "anidb jugement comparatif/Combats menes.csv",
+          sep = "|",
+          encoding = "UTF-8",
+          colClasses = "character") %>%
+    mutate_all(trimws)  %>%
+    inner_join(y = Table %>% select(AN1 = Base64, An1 = Player),
+               by = "AN1") %>%
+    inner_join(y = Table %>% select(AN2 = Base64, An2 = Player),
+               by = "AN2")
 
   # Calculer le nouveau Elo
   Table = ELO(Table, Results)
@@ -336,71 +269,14 @@ SCRIPT2 <- function(url) {
     SCORING(url) %>%
     mutate(Rating = scale(x = Rating, center = TRUE, scale = TRUE)) %>%
     left_join(x = LIST(url) %>% select(Player), by = "Player") %>%
+    data.table() %>%
     mutate(Rating = case_when(is.na(Rating) ~ 0 ,
                               TRUE ~ Rating))
 
   BATTLE(Table = Table, Clusters = CLUSTERING(Table = Table, url = url)) %>%
+    rename(AN1 = Base64, AN2 = Base641) %>%
     split(f = paste(.$An1, .$An2)) %>%
-    map(select, An1, An2) %>% unique() %>%
     sample(size = length(.)) %>%
     map(New_Round)
-
-}
-
-SOULIST <- function(Table, Sous_Liste) {
-  nom_Table = names(Table)
-  pacman::p_load(dplyr)
-  toto = right_join(x = Table,
-                    y = LIST(url),
-                    by = "Player") %>%
-    data.table()
-
-  toto[is.na(toto$Rating.x)]$Rating.x = 0
-
-  # Découper la liste par note
-  Table = toto[order(Player), .(Player, Rating.x)]
-  names(Table) = nom_Table
-
-  Results = fread(
-    input = "anidb jugement comparatif/Combats menes.csv",
-    sep = "|",
-    encoding = "UTF-8",
-    colClasses = "character"
-  ) %>% unique()
-
-  Sous_Liste =
-    Sous_Liste %>%
-    anti_join(Results, by = c("An1", "An2")) %>%
-    inner_join(y = Table, by = c("An1" = "Player")) %>%
-    inner_join(y = Table, by = c("An2" = "Player")) %>%
-    mutate(
-      Rating.x = (Rating.x - mean(Rating.x)) / sd(Rating.x),
-      Rating.y = (Rating.y - mean(Rating.y)) / sd(Rating.y)
-    ) %>%
-    mutate(Gap = abs(Rating.x - Rating.y)) %>%
-    arrange(Gap) %>%
-    # slice(1:10) %>%
-    select(An1, An2) %>%
-    data.table()
-  return(Sous_Liste)
-}
-
-Standardisation_Score = function(Table) {
-  Table$Rating =
-    qnorm(
-      rank(Table$Rating, ties.method = "average") / (length(Table$Rating) + 1),
-      mean = mean(Table$Rating),
-      sd = sd(Table$Rating)
-    )
-
-  Table %>% Standardisation_Score_2() %>% return()
-}
-
-Standardisation_Score_2 <- function(Table) {
-  Table %>%
-    mutate(Rating = Rating - min(Rating)) %>%
-    mutate(Rating = 9.99 / max(Rating) * Rating) %>%
-    mutate(Rating = (Rating + 1) %>% floor()) %>%
-    return()
 }
 
