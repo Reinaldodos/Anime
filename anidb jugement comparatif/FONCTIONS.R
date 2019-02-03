@@ -1,71 +1,105 @@
-# Fonctions ---------------------------------------------------------------
-LIST <- function(url)
-{
-  pacman::p_load(rvest)
-  pacman::p_load(data.table)
-  Table = url %>%
-    read_html() %>%
-    html_table()
+BATTLE <- function(Table, Clusters) {
+  "Import des résultats" %>% cat(sep = "\n")
 
-  pacman::p_load(dplyr)
-  Table = Table[[1]] %>%
-    mutate(
-      R = suppressWarnings(as.integer(R)),
-      Diff = as.numeric(Diff),
-      Note = R - Diff
-    ) %>%
+  Results = fread(
+    input = "anidb jugement comparatif/Combats menes.csv",
+    sep = "|",
+    encoding = "UTF-8",
+    colClasses = "character", fill = TRUE,
+  ) %>%
+    mutate_all(trimws) %>%
+    filter(Score %in% 1:2,
+           An1%in%Table$Player,
+           An2 %in% Table$Player) %>%
     data.table()
 
-  Table$url = url %>% read_html() %>% html_nodes(css = "#main a") %>% html_attr(name = "href")
-  Table$Title = url %>% read_html() %>% html_nodes(css = "#main a") %>% html_text()
-  Table = Table[!is.na(Table$R)]
+  safe_COMBAT = safely(COMBATTANTS)
 
-  colnames(Table) = c("S", "Player", "Rating", "Diff", "Note", "url")
-  STAR = "★"
-  Table$Player = gsub(pattern = STAR,
-                      replacement = " ",
-                      x = Table$Player)
-  Table$Player = gsub(
-    pattern = Table[grep(pattern = "Ghoul ", Table$Player)]$Player,
-    replacement = "Tokyo Ghoul vA",
-    x = Table$Player
-  )
-  return(Table[, .(Player, Rating, Note, url)])
+  Bataille =
+    Table %>%
+    inner_join(Clusters, by = "Player") %>% split(f = .$Groupe) %>%
+    map(.f = safe_COMBAT, Results = Results) %>% compact %>%
+    map_df(.f = ~ .$result) %>% unique()
+
+  if (nrow(Bataille) == 0)
+    Bataille = Table %>% COMBATTANTS(Results = Results)
+
+  return(Bataille)
 }
 
-LISTER <- function(Table)
-{
-  pacman::p_load(dplyr)
-  Table = arrange(Table, Player)
-  if (nrow(Table) <= 1)
-  {
-    return(NULL)
-  } else {
-    Liste = Table$Player
+CHANGES <- function(url) {
+  FINAL =
+    url %>% SCORE_FINAL() %>%
+    inner_join(LIST(url) %>% select(Player, Avant = Rating)) %>%
+    mutate(Gap = abs(Note - Avant))
 
-    pacman::p_load(foreach)
-    Coupe = foreach(anime = Liste, .combine = rbind) %do%
-      cbind.data.frame(anime, Liste[match(anime, table = Liste):length(Liste)])  %>%
-      data.table()
-    colnames(Coupe) = c("An1", "An2")
+  To_Change = FINAL %>% filter(Gap != 0)
 
-    condition = Coupe$An1 == Coupe$An2
+  plot =
+    FINAL %>%
+    ggplot() +
+    geom_histogram(mapping = aes(x = Note)) +
+    geom_histogram(mapping = aes(x = Avant),
+                   fill = "red",
+                   alpha = 0.2)
+  print(plot)
 
-    Draw = Coupe[!condition]
-  }
-  return(Draw)
-  # return(Draw[1:min(nrow(Table), nrow(Draw))])
+  plot =
+    To_Change %>%
+    count(Avant, Note) %>%
+    ggplot() +
+    geom_point(mapping = aes(x = Avant, y = Note, size = n)) +
+    geom_abline()
+  print(plot)
+
+  To_Change %>% return()
 }
 
-FIGHT <- function(Match)
-{
-  Match = data.table(Match)
-  Match$Score = readline(paste(Match$An1, "VS", Match$An2, ": ", sep = " "))
-  return(Match)
+CLUSTERING = function(Table, url){
+  pacman::p_load(igraph)
+  table_graphe =
+    readRDS(file =
+              "anidb jugement comparatif/Reseau")
+
+  graphe =
+    table_graphe %>% select(Ref, Title) %>% as.matrix() %>%
+    graph.edgelist(directed = F)
+
+  E(graphe)$weight = table_graphe$Recs
+
+  Clusters =
+    graphe %>%
+    cluster_louvain() %>%
+    communities() %>%
+    map(.f = ~ data.table(Player = .)) %>%
+    bind_rows(.id = "Groupe") %>%
+    left_join(x = Table, by = "Player") %>%
+    mutate(Groupe = case_when(is.na(Groupe) ~ 0,
+                              TRUE ~ Groupe %>% as.numeric())) %>%
+    inner_join(LIST(url) %>% select(Player), by = "Player")
+
+  Clusters %>% select(Groupe, Player) %>% return()
 }
 
-COMPARAISON <- function(Scores, SEUIL, Table)
-{
+COMBATTANTS <- function(Table, Results) {
+  Combats =
+    tidyr::crossing(Table, Table) %>% data.table %>%
+    rename(An1 = Player, An2 = Player1) %>%
+    inner_join(LISTER(Table), by = c("An1", "An2")) %>%
+    mutate(Delta = abs(Rating1 - Rating)) %>%
+    arrange(Delta) %>%
+    anti_join(y = Results, by = c("An1", "An2"))
+
+  CUT =
+    Table$Player %>%
+    map(.f = ~ filter(Combats, An1 == . | An2 == .)) %>%
+    map(.f = slice, 2:2) %>%
+    bind_rows%>% summarise(min(Delta)) %>% as.numeric()
+
+  Combats %>% filter(Delta <= CUT) %>% return()
+}
+
+COMPARAISON <- function(Scores, SEUIL, Table) {
   input =
     bind_rows(Scores$`1` %>%
                 rename(Win = An1, Lose = An2),
@@ -93,8 +127,7 @@ COMPARAISON <- function(Scores, SEUIL, Table)
   return(Rank)
 }
 
-ELO <- function(Table, Results)
-{
+ELO <- function(Table, Results) {
   pacman::p_load(data.table)
   pacman::p_load(dplyr)
 
@@ -119,30 +152,108 @@ ELO <- function(Table, Results)
   return(foo)
 }
 
-Standardisation_Score = function(Table)
-{
-  Table$Rating =
-    qnorm(
-      rank(Table$Rating, ties.method = "average") / (length(Table$Rating) + 1),
-      mean = mean(Table$Rating),
-      sd = sd(Table$Rating)
-    )
+Enough_desuka <- function(Table) {
+  pacman::p_load(data.table)
 
-  Table %>% Standardisation_Score_2() %>% return()
+  LISTES =
+    Table %>%
+    mutate(Groupe =
+             cut(x = Table$Rating,
+                 breaks = 10))
+
+  LISTES =
+    LISTES %>%
+    group_by(Groupe) %>%
+    count() %>%
+    filter(n > 1) %>%
+    inner_join(y = LISTES, by = "Groupe")
+
+  pacman::p_load(foreach)
+  Sous_Liste =
+    foreach(liste = split(x = LISTES, f = as.character(LISTES$Groupe))) %do%
+    {
+      SOULIST(Table = Table[, .(Player, Rating)], Sous_Liste = LISTER(liste)) %>%
+        slice(1:length(liste))
+    } %>%
+    rbindlist()
+
+  return(Sous_Liste)
 }
 
-Standardisation_Score_2 <- function(Table)
-{
-  Table %>%
-    mutate(Rating = Rating - min(Rating)) %>%
-    mutate(Rating = 9.99 / max(Rating) * Rating) %>%
-    mutate(Rating = (Rating + 1) %>% floor()) %>%
-    return()
+FIGHT <- function(Match) {
+  Match = data.table(Match)
+  Match$Score = readline(paste(Match$An1, "VS", Match$An2, ": ", sep = " "))
+  return(Match)
+}
+
+FINALE <- function(url) {
+  Table =
+    url %>%
+    SCORING()
+
+  output =
+    Table %>% Standardisation_Score() %>%
+    inner_join(LIST(url) %>% select(Player, Rating), by = "Player") %>%
+    filter(Rating.x != Rating.y)
+
+  output %>%
+    print()
+
 }
 
 
-Order_past_matches <- function(Results)
-{
+LISTER <- function(Table) {
+  pacman::p_load(dplyr)
+  Table = arrange(Table, Player)
+  if (nrow(Table) <= 1)
+  {
+    return(NULL)
+  } else {
+    Liste = Table$Player
+
+    pacman::p_load(foreach)
+    Coupe = foreach(anime = Liste, .combine = rbind) %do%
+      cbind.data.frame(anime, Liste[match(anime, table = Liste):length(Liste)])  %>%
+      data.table()
+    colnames(Coupe) = c("An1", "An2")
+
+    condition = Coupe$An1 == Coupe$An2
+
+    Draw = Coupe[!condition]
+  }
+  return(Draw)
+  # return(Draw[1:min(nrow(Table), nrow(Draw))])
+}
+
+New_Round = function(Sous_Liste) {
+  Sous_Liste =
+    Sous_Liste %>%
+    filter(!is.na(An1)) %>%
+    sample_n(size = 1) %>%
+    data.table()
+
+  pacman::p_load(rvest)
+  # Récupérer les scores de chaque match
+  pacman::p_load(foreach)
+  Resultats = foreach(match = 1:nrow(Sous_Liste)) %do%
+    FIGHT(Match = Sous_Liste[match]) %>%
+    rbindlist()
+
+  # les accoler à la réserve
+  # sauver la réserve
+  write.table(
+    fileEncoding = "UTF-8",
+    x = Resultats,
+    file = "anidb jugement comparatif/Combats menes.csv",
+    append = T,
+    quote = F,
+    sep = "|",
+    row.names = F,
+    col.names = T
+  )
+}
+
+Order_past_matches <- function(Results) {
   Fichier = Results %>%
     split(f = Results$Score)
 
@@ -181,10 +292,23 @@ Order_past_matches <- function(Results)
   return(output)
 }
 
-# Récupérer la liste
-SCORING <- function(url)
-{
-  print("Nouveaux scores")
+SCORE_FINAL <- function(url) {
+  TABLE = url %>% SCORING()
+
+  Rating =
+    TABLE %>% mutate(Rank = min_rank(Rating) / (1+nrow(.)))  %>%
+    .$Rank %>% qnorm(mean = 0, sd = 1)
+
+  Rating = Rating - min(Rating)
+  Rating = (Rating / max(Rating)) * 9.99
+
+  TABLE$Note = (1 + Rating) %>% floor()
+
+  TABLE %>% return()
+}
+
+SCORING <- function(url) {
+  "Nouveaux scores" %>% cat(sep = "\n")
   pacman::p_load(data.table)
   Table = LIST(url)
   colnames(Table) = c("Player", "Rating", "Note", "url")
@@ -207,8 +331,23 @@ SCORING <- function(url)
   return(Table)
 }
 
-SOULIST <- function(Table, Sous_Liste)
-{
+SCRIPT2 <- function(url) {
+  Table =
+    SCORING(url) %>%
+    mutate(Rating = scale(x = Rating, center = TRUE, scale = TRUE)) %>%
+    left_join(x = LIST(url) %>% select(Player), by = "Player") %>%
+    mutate(Rating = case_when(is.na(Rating) ~ 0 ,
+                              TRUE ~ Rating))
+
+  BATTLE(Table = Table, Clusters = CLUSTERING(Table = Table, url = url)) %>%
+    split(f = paste(.$An1, .$An2)) %>%
+    map(select, An1, An2) %>% unique() %>%
+    sample(size = length(.)) %>%
+    map(New_Round)
+
+}
+
+SOULIST <- function(Table, Sous_Liste) {
   nom_Table = names(Table)
   pacman::p_load(dplyr)
   toto = right_join(x = Table,
@@ -246,205 +385,22 @@ SOULIST <- function(Table, Sous_Liste)
   return(Sous_Liste)
 }
 
-New_Round = function(Sous_Liste)
-{
-  Sous_Liste =
-    Sous_Liste %>%
-    filter(!is.na(An1)) %>%
-    sample_n(size = 1) %>%
-    data.table()
+Standardisation_Score = function(Table) {
+  Table$Rating =
+    qnorm(
+      rank(Table$Rating, ties.method = "average") / (length(Table$Rating) + 1),
+      mean = mean(Table$Rating),
+      sd = sd(Table$Rating)
+    )
 
-  pacman::p_load(rvest)
-  # Récupérer les scores de chaque match
-  pacman::p_load(foreach)
-  Resultats = foreach(match = 1:nrow(Sous_Liste)) %do%
-    FIGHT(Match = Sous_Liste[match]) %>%
-    rbindlist()
-
-  # les accoler à la réserve
-  # sauver la réserve
-  write.table(
-    x = Resultats,
-    file = "anidb jugement comparatif/Combats menes.csv",
-    append = T,
-    quote = F,
-    sep = "|",
-    row.names = F,
-    col.names = T,
-    fileEncoding = "UTF-8"
-  )
+  Table %>% Standardisation_Score_2() %>% return()
 }
 
-FINALE <- function(url)
-{
-  Table =
-    url %>%
-    SCORING()
-
-  output =
-    Table %>% Standardisation_Score() %>%
-    inner_join(LIST(url) %>% select(Player, Rating), by = "Player") %>%
-    filter(Rating.x != Rating.y)
-
-  output %>%
-    print()
-
+Standardisation_Score_2 <- function(Table) {
+  Table %>%
+    mutate(Rating = Rating - min(Rating)) %>%
+    mutate(Rating = 9.99 / max(Rating) * Rating) %>%
+    mutate(Rating = (Rating + 1) %>% floor()) %>%
+    return()
 }
 
-Enough_desuka <- function(Table)
-{
-  pacman::p_load(data.table)
-
-  LISTES =
-    Table %>%
-    mutate(Groupe =
-             cut(x = Table$Rating,
-                 breaks = 10))
-
-  LISTES =
-    LISTES %>%
-    group_by(Groupe) %>%
-    count() %>%
-    filter(n > 1) %>%
-    inner_join(y = LISTES, by = "Groupe")
-
-  pacman::p_load(foreach)
-  Sous_Liste =
-    foreach(liste = split(x = LISTES, f = as.character(LISTES$Groupe))) %do%
-    {
-      SOULIST(Table = Table[, .(Player, Rating)], Sous_Liste = LISTER(liste)) %>%
-        slice(1:length(liste))
-    } %>%
-    rbindlist()
-
-  return(Sous_Liste)
-}
-
-SCRIPT = function()
-{
-  Related =
-    fread(
-      input = "anidb jugement comparatif/Combats menes.csv",
-      sep = "|",
-      encoding = "UTF-8",
-      colClasses = "character"
-    ) %>%
-    anti_join(x = foo, by = c("An1", "An2")) %>%
-    inner_join(franchises, by = c("An1", "An2"))
-
-  while (Related %>% nrow() > 0)
-  {
-    New_Round(Sous_Liste = Related %>% sample_n(1))
-    Related =
-      fread(
-        input = "anidb jugement comparatif/Combats menes.csv",
-        sep = "|",
-        encoding = "UTF-8",
-        colClasses = "character"
-      ) %>% anti_join(x = foo, by = c("An1", "An2")) %>%
-      inner_join(franchises, by = c("An1", "An2"))
-  }
-}
-
-SCORE_FINAL <- function(url) {
-  TABLE = url %>% SCORING()
-
-  Rating =
-    TABLE %>% mutate(Rank = min_rank(Rating) / (1+nrow(.)))  %>%
-    .$Rank %>% qnorm(mean = 0, sd = 1)
-
-  Rating = Rating - min(Rating)
-  Rating = (Rating / max(Rating)) * 9.99
-
-  TABLE$Note = (1 + Rating) %>% floor()
-
-  TABLE %>% return()
-}
-
-SCRIPT2 <- function(url) {
-  Table = SCORING(url)
-
-  "Import des résultats" %>% print
-
-  Results = fread(
-    input = "anidb jugement comparatif/Combats menes.csv",
-    sep = "|",
-    encoding = "UTF-8",
-    colClasses = "character"
-  ) %>%
-    mutate_all(trimws) %>%
-    filter(Score %in% 1:2,
-           An1%in%Table$Player,
-           An2 %in% Table$Player) %>%
-    data.table()
-
-  Combats =
-    tidyr::crossing(Table, Table) %>%
-    rename(An1 = Player, An2 = Player1) %>%
-    inner_join(LISTER(Table), by = c("An1", "An2")) %>%
-    mutate(Delta = abs(Rating - Rating1)) %>%
-    select(-contains("Rating")) %>%
-    anti_join(y = Results, by = c("An1", "An2")) %>%
-    arrange(Delta) %>%
-    data.table()
-
-  "Choix de la sélection" %>% print
-  Selection =
-    bind_rows(
-      Results %>%
-        group_by(Title = An1) %>% count(),
-      Results %>%
-        group_by(Title = An2) %>% count()
-    ) %>%
-    summarise(n = sum(n) %>% as.double()) %>%
-    left_join(x = Table %>% select(Title = Player)) %>%
-    mutate(n = case_when(is.na(n) ~ 0 ,
-                         TRUE ~ n)) %>%
-    arrange(n) %>%
-    mutate(Goal = lead(n))
-
-
-  Nb_matchs =
-    Selection %>% mutate(Match = Goal - n) %>%
-    filter(n == min(n)) %>%
-    summarise(Match = max(Match)) %>% pull(Match)
-
-  Selection = Selection %>% filter(n == min(n)) %>% pull(Title)
-
-  Selection %>%
-    map(.f = ~ filter(.data = Combats,
-                      An1%in%. | An2 %in% .)) %>%
-    map(.f = arrange, Delta) %>%
-    map(.f = slice, 1:Nb_matchs) %>% unique() %>%
-    map(.f = select, An1, An2) %>%
-    map(New_Round)
-
-}
-
-CHANGES <- function(url) {
-  FINAL =
-    url %>% SCORE_FINAL() %>%
-    inner_join(LIST(url) %>% select(Player, Avant = Rating)) %>%
-    mutate(Gap = abs(Note - Avant))
-
-  To_Change = FINAL %>% filter(Gap != 0)
-
-  plot =
-    FINAL %>%
-    ggplot() +
-    geom_histogram(mapping = aes(x = Note)) +
-    geom_histogram(mapping = aes(x = Avant),
-                   fill = "red",
-                   alpha = 0.2)
-  print(plot)
-
-  plot =
-    To_Change %>%
-    count(Avant, Note) %>%
-    ggplot() +
-    geom_point(mapping = aes(x = Avant, y = Note, size = n)) +
-    geom_abline()
-  print(plot)
-
-  To_Change %>% return()
-}
