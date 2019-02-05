@@ -100,16 +100,16 @@ COMBATTANTS <- function(Table, Results) {
     rename(An1 = Player, An2 = Player1) %>%
     inner_join(LISTER(Table), by = c("An1", "An2")) %>%
     mutate(Delta = abs(Rating1 - Rating)) %>%
-    arrange(Delta) %>%
-    anti_join(y = Results, by = c("An1", "An2"))
+    arrange(Delta)
 
-  CUT =
-    Table$Player %>%
-    map(.f = ~ filter(Combats, An1 == . | An2 == .)) %>%
-    map(.f = slice, 2:2) %>%
-    bind_rows%>% summarise(min(Delta)) %>% as.numeric()
-
-  Combats %>% filter(Delta <= CUT) %>% return()
+  Table$Player %>% set_names() %>%
+    map(.f = ~filter(.data = Combats, An1==.| An2==.)) %>%
+    map(.f = ~mutate(.data = .,N = dense_rank(Delta))) %>%
+    bind_rows%>%
+    anti_join(y = Results, by = c("An1", "An2")) %>%
+    filter(N==min(N)) %>%
+    unique() %>%
+    return()
 }
 
 COMPARAISON <- function(Scores, SEUIL, Table) {
