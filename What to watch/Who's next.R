@@ -29,17 +29,18 @@ Torrents =
   c(
     "ef",
     "Lain",
-    "Jigen",
-    "Kaiji",
     "Xamdou",
-    "Touch"
+    "Touch",
+    "Ginga",
+    "Terra",
+    "Romeo"
   )
 
-Liste =
-  Torrents %>%
-  map_df(.f = ~filter(.data = Liste,
-                   str_detect(string = `Anime Title`, pattern = .))) %>%
-  anti_join(x = Liste)
+# Liste =
+#   Torrents %>%
+#   map_df(.f = ~filter(.data = Liste,
+#                    str_detect(string = `Anime Title`, pattern = .))) %>%
+#   anti_join(x = Liste)
 
 map(
   .x = c("(Next-Nb)/(Eps-Nb)", "1/(Eps-Next)", "Next/Eps"),
@@ -54,4 +55,3 @@ Liste %>%
   split(x = paste(.$`Anime Title`, " n°", .$Nb + 1, sep = ""),
         f = .$Reste) %>% .[1] %>%
   print
-
