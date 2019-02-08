@@ -61,8 +61,11 @@ CHANGES <- function(url) {
     count(Avant, Note) %>%
     ggplot() +
     geom_point(mapping = aes(x = Avant, y = Note, size = n)) +
-    geom_abline()
+    geom_abline() +
+    xlim(0, 10) + ylim(0, 10)
   print(plot)
+
+  To_Change %>% View()
 
   To_Change %>% return()
 }
