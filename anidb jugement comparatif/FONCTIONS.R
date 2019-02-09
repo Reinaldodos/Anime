@@ -74,7 +74,8 @@ CLUSTERING = function(Table, url){
   pacman::p_load(igraph)
   table_graphe =
     readRDS(file =
-              "anidb jugement comparatif/Reseau")
+              "anidb jugement comparatif/Reseau") %>%
+    filter(Title %in% Table$Player)
 
   graphe =
     table_graphe %>% select(Ref, Title) %>% as.matrix() %>%

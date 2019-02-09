@@ -2,14 +2,15 @@ pacman::p_load(tidyverse, ggrepel, lubridate)
 source(file = "What to watch/Fonctions.R", encoding = "UTF-8")
 # Fetching ----------------------------------------------------------------
 Pages =
-  list(Watching = "https://myanimelist.net/animelist/Altermedia?status=1&tag=",
-       OnHold = "https://myanimelist.net/animelist/Altermedia?status=3&tag=",
-       Dropped = "https://myanimelist.net/animelist/Altermedia?status=4&tag="
+  list(Watching = "https://myanimelist.net/animelist/Altermedia?status=1&tag="
+       # Planned = "https://myanimelist.net/animelist/Altermedia?status=7&tag=",
+       # OnHold = "https://myanimelist.net/animelist/Altermedia?status=3&tag=",
+       # Dropped = "https://myanimelist.net/animelist/Altermedia?status=4&tag="
        )
 
 input =
-  Pages$Watching %>%
-  CLINNE %>%
+  Pages %>%
+  map(CLINNE) %>% bind_rows(.id = "Status") %>%
   mutate(Progress = Nb / Eps)
 
 # Data pre-processing -----------------------------------------------------
@@ -27,13 +28,13 @@ Liste =
 # Modelization ------------------------------------------------------------
 Torrents =
   c(
-    "ef",
     "Lain",
     "Xamdou",
     "Touch",
     "Ginga",
     "Terra",
-    "Romeo"
+    "Romeo",
+    "Lupin"
   )
 
 # Liste =
