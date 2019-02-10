@@ -9,14 +9,14 @@ read_excel_sheets = function(file){
     return
 }
 
-input = "TEST EBA.xlsx" %>% read_excel_sheets
-Liste = input$Feuil1 %>% filter(!is.na(Vote)) %>% pull(Title)
+input = "anidb jugement comparatif/TEST EBA.xlsx" %>% read_excel_sheets
+Liste = input$Feuil1 %>% pull(Title)
 
 JUDGING <- function(test) {
   test %>% select(Player = Title, Rating = Vote) %>%
-    mutate(Rating = case_when(is.na(Rating) ~ 0,
-                              TRUE ~ Rating %>% as.double)) %>%
-    crossing(.,.) %>%
+    # mutate(Rating = case_when(is.na(Rating) ~ 0,
+    #                           TRUE ~ Rating %>% as.double)) %>%
+    tidyr::crossing(.,.) %>%
     filter(Player != Player1,
            Rating > Rating1) %>%
     mutate(Score = 1) %>%
@@ -25,21 +25,26 @@ JUDGING <- function(test) {
 }
 
 output =
-  input %>% map(.f = filter, Title %in% Liste) %>%
+  input %>%
   map_df(JUDGING) %>%
   group_by(Player, Player1) %>% summarise(Score = sum(Score)) %>%
-  # filter(Player %in% Liste & Player1 %in% Liste) %>%
   data.table
 
-output =
-  cbind.data.frame(Player = Liste)%>%
-  left_join(output, by = "Player") %>%
-  spread(key = Player1, value = Score, fill = 0) %>%
-  select(-`<NA>`)
+Selection =
+  output %>%
+  filter(Player %in% Liste & Player1 %in% Liste) %>%
+  distinct(Player, Player1) %>% as.list %>% flatten_chr %>% unique
+
+Table =
+  tidyr::crossing(Player = Selection, Player1 = Selection) %>%
+  left_join(y = output, by = c("Player", "Player1")) %>%
+  mutate(Score = replace_na(data = Score, replace = 0)) %>%
+  spread(key = Player1, value = Score) %>%
+  data.table()
 
 pacman::p_load(eba)
 Rank =
-  output %>% select(-Player) %>%
+  Table %>% select(-Player) %>%
   thurstone
 
 foo = Rank$estimate %>% as.data.frame
