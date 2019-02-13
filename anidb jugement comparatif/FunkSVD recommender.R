@@ -28,7 +28,7 @@ DATA =
   # count(Title) %>%
   # filter(n >= 3) %>% select(-n) %>%
   # inner_join(x=Sparse) %>%
-  # filter(Title %in% Liste) %>%
+  filter(Title %in% Liste) %>%
   select(User, Title, Rating = Vote)
 
 FUNKYSVD <- function(K, Table) {
