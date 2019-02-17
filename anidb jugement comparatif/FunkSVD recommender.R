@@ -69,19 +69,15 @@ FUNKYSVD <- function(K, Table) {
 }
 
 Recommenders =
-  1:5 %>% set_names() %>%
+  1:8 %>% set_names() %>%
   map(.f = FUNKYSVD, Table = DATA)
 
 
-Recommenders$`3` %>%
+Recommenders$`8` %>%
   left_join(y = Sparse, by = c("Title", "User")) %>%
-  group_by(User) %>%
-  mutate(M = mean(Vote, na.rm = T),
-         SD = sd(Vote, na.rm = T)) %>% ungroup %>%
-  # mutate(Score = Score * SD + M) %>%
   ggplot(mapping = aes(
     x = Vote,
-    y = Score %>% round(digits = 2),
+    y = Score,
     colour = User
   )) +
   geom_point() +
