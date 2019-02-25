@@ -29,7 +29,7 @@ BATTLE <- function(Table, Clusters) {
   Bataille_Clusters =
     Table %>%
     inner_join(Clusters, by = "Player") %>% split(f = .$Groupe) %>%
-    map(.f = safe_COMBAT, Results = Results) %>% compact %>%
+    map(.f = safe_COMBAT, Results = Results) %>% map(compact) %>%
     map_df(.f = ~ .$result) %>% unique()
 
   Bataille = Table %>% COMBATTANTS(Results = Results)
@@ -108,10 +108,10 @@ COMBATTANTS <- function(Table, Results) {
 
   Table$Player %>% set_names() %>%
     map(.f = ~filter(.data = Combats, An1==.| An2==.)) %>%
-    map(.f = ~mutate(.data = .,N = dense_rank(Delta))) %>%
-    bind_rows%>%
+    map(.f = ~ mutate(.data = ., N = dense_rank(Delta))) %>%
+    bind_rows %>%
     anti_join(y = Results, by = c("An1", "An2")) %>%
-    filter(N==min(N)) %>%
+    filter(N == min(N)) %>%
     unique() %>%
     return()
 }
