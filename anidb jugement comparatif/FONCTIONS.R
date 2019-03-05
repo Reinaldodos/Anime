@@ -230,10 +230,7 @@ New_Round = function(Sous_Liste) {
 SCORE_FINAL <- function(url) {
   TABLE = url %>% SCORING()
 
-  Rating =
-    TABLE %>% mutate(Rank = min_rank(Rating) / (1+nrow(.)))  %>%
-    .$Rank %>% qnorm(mean = 0, sd = 1)
-
+  Rating = TABLE$Rating
   Rating = Rating - min(Rating)
   Rating = (Rating / max(Rating)) * 9.99
 
