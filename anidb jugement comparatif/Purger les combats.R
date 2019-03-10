@@ -1,11 +1,6 @@
 # Import des données ------------------------------------------------------
 Table = LIST(url)
-
-
-NEWBIES(input = Table %>% Get_results())
-
 input = Table %>% Get_results()
-
 Table = ELO(Table = input$Table, Results = input$Results)
 
 Combats =
@@ -36,3 +31,5 @@ SELECAO %>% select(AN1, AN2, Score) %>%
     col.names = T,
     fileEncoding = "UTF-8"
   )
+
+NEWBIES(input = Table %>% Get_results())
