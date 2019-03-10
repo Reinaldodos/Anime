@@ -1,29 +1,9 @@
 BASE64ENCODE = function(string) {
-  pacman::p_load(base64enc)
+  require(base64enc)
   string %>% charToRaw() %>% base64encode() %>% return()
 }
 
-BASE64DECODE = function(string) {
-  pacman::p_load(base64enc)
-  string %>% base64decode() %>% rawToChar() %>% return()
-}
-
-BATTLE <- function(Table, Clusters) {
-  Table$Base64 =
-    Table$Player %>% map_chr(BASE64ENCODE)
-  "Import des résultats" %>% cat(sep = "\n")
-
-  Results =
-    fread(input = "anidb jugement comparatif/Combats menes.csv",
-          sep = "|",
-          encoding = "UTF-8",
-          colClasses = "character") %>%
-    mutate_all(trimws)  %>%
-    inner_join(y = Table %>% select(AN1 = Base64, An1 = Player),
-               by = "AN1") %>%
-    inner_join(y = Table %>% select(AN2 = Base64, An2 = Player),
-               by = "AN2")
-
+BATTLE <- function(Table, Clusters, Results) {
   safe_COMBAT = safely(COMBATTANTS)
 
   Bataille_Clusters =
@@ -71,7 +51,7 @@ CHANGES <- function(url) {
 }
 
 CLUSTERING = function(Table, url){
-  pacman::p_load(igraph)
+  require(igraph)
   table_graphe =
     readRDS(file =
               "anidb jugement comparatif/Reseau") %>%
@@ -98,7 +78,7 @@ CLUSTERING = function(Table, url){
 }
 
 COMBATTANTS <- function(Table, Results) {
-  pacman::p_load(tidyr)
+  require(tidyr)
   Combats =
     tidyr::crossing(Table, Table) %>% data.table %>%
     rename(An1 = Player, An2 = Player1) %>%
@@ -137,7 +117,7 @@ COMPARAISON <- function(Scores, SEUIL, Table) {
     spread(key = Lose, value = n) %>%
     data.table()
 
-  pacman::p_load(eba)
+  require(eba)
   Rank =
     # eba(M = input %>% select(-Win))
     thurstone(M = input %>% select(-Win))
@@ -145,10 +125,12 @@ COMPARAISON <- function(Scores, SEUIL, Table) {
 }
 
 ELO <- function(Table, Results) {
-  pacman::p_load(data.table)
-  pacman::p_load(dplyr)
+  require(data.table)
+  require(dplyr)
 
   N = 1
+  "Nouveaux scores" %>% cat(sep = "\n")
+
   Rank = COMPARAISON(Scores = Results %>%
                        split(f = .$Score), SEUIL = N, Table = Table)
 
@@ -176,7 +158,7 @@ FIGHT <- function(Match) {
 }
 
 LISTER <- function(Table) {
-  pacman::p_load(dplyr)
+  require(dplyr)
   Table = arrange(Table, Player)
   if (nrow(Table) <= 1)
   {
@@ -184,7 +166,7 @@ LISTER <- function(Table) {
   } else {
     Liste = Table$Player
 
-    pacman::p_load(foreach)
+    require(foreach)
     Coupe = foreach(anime = Liste, .combine = rbind) %do%
       cbind.data.frame(anime, Liste[match(anime, table = Liste):length(Liste)])  %>%
       data.table()
@@ -205,9 +187,9 @@ New_Round = function(Sous_Liste) {
     sample_n(size = 1) %>%
     data.table()
 
-  pacman::p_load(rvest)
+  require(rvest)
   # Récupérer les scores de chaque match
-  pacman::p_load(foreach)
+  require(foreach)
   Resultats = foreach(match = 1:nrow(Sous_Liste)) %do%
     FIGHT(Match = Sous_Liste[match]) %>%
     rbindlist()
@@ -230,9 +212,7 @@ New_Round = function(Sous_Liste) {
 SCORE_FINAL <- function(url) {
   TABLE = url %>% SCORING()
 
-  Rating =
-    TABLE %>% mutate(Rank = min_rank(Rating) / (1+nrow(.)))  %>%
-    .$Rank %>% qnorm(mean = 0, sd = 1)
+  Rating = TABLE$Rank
 
   Rating = Rating - min(Rating)
   Rating = (Rating / max(Rating)) * 9.99
@@ -243,13 +223,44 @@ SCORE_FINAL <- function(url) {
 }
 
 SCORING <- function(url) {
-  "Nouveaux scores" %>% cat(sep = "\n")
-  pacman::p_load(data.table)
+  require(data.table)
   Table = LIST(url)
-  colnames(Table) = c("Player", "Rating", "Note", "url")
+  input = Table %>% Get_results()
 
+  # Calculer le nouveau Elo
+  ELO(Table = Table, Results = input$Results) %>%
+    return()
+}
+
+SCRIPT2 <- function(url) {
+  Table = LIST(url)
+  input = Table %>% Get_results()
+
+  Table =
+    ELO(input$Table, input$Results) %>%
+    mutate(Rating = scale(x = Rating,
+                          center = TRUE,
+                          scale = TRUE)) %>%
+    left_join(x = input$Table %>% select(-Rating), by = "Player") %>%
+    data.table() %>%
+    mutate(Rating = case_when(is.na(Rating) ~ 0 ,
+                              TRUE ~ Rating))
+
+  BATTLE(Table = Table,
+         Clusters = CLUSTERING(Table = Table,
+                               url = url),
+         Results = input$Results) %>%
+    rename(AN1 = Base64, AN2 = Base641) %>%
+    split(f = paste(.$An1, .$An2)) %>%
+    sample(size = length(.)) %>%
+    walk(New_Round)
+}
+
+Get_results <- function(Table) {
   Table$Base64 =
     Table$Player %>% map_chr(BASE64ENCODE)
+
+  "Import des résultats" %>% cat(sep = "\n")
 
   Results =
     fread(input = "anidb jugement comparatif/Combats menes.csv",
@@ -262,25 +273,27 @@ SCORING <- function(url) {
     inner_join(y = Table %>% select(AN2 = Base64, An2 = Player),
                by = "AN2")
 
-  # Calculer le nouveau Elo
-  Table = ELO(Table, Results)
-  nom_Table = names(Table)
-  return(Table)
+  list(Table=Table, Results=Results) %>%
+  return()
 }
 
-SCRIPT2 <- function(url) {
-  Table =
-    SCORING(url) %>%
-    mutate(Rating = scale(x = Rating, center = TRUE, scale = TRUE)) %>%
-    left_join(x = LIST(url) %>% select(Player), by = "Player") %>%
-    data.table() %>%
-    mutate(Rating = case_when(is.na(Rating) ~ 0 ,
-                              TRUE ~ Rating))
 
-  BATTLE(Table = Table, Clusters = CLUSTERING(Table = Table, url = url)) %>%
+NEWBIES <- function(input) {
+  Newbies =
+    input$Results %>% select(An1, An2) %>%
+    as.list() %>% flatten_chr() %>% data.table(Player = .) %>%
+    count(Player) %>%
+    left_join(x = input$Table %>% distinct(Player), by = "Player") %>%
+    filter(is.na(n))
+
+  BATTLE(
+    Table = input$Table,
+    Results = input$Results,
+    Clusters = CLUSTERING(Table = input$Table, url = url)) %>%
+    filter(An1 %in% Newbies$Player | An2 %in% Newbies$Player) %>%
     rename(AN1 = Base64, AN2 = Base641) %>%
     split(f = paste(.$An1, .$An2)) %>%
     sample(size = length(.)) %>%
-    map(New_Round)
-}
+    walk(New_Round)
 
+}
