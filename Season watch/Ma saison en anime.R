@@ -4,12 +4,15 @@ Liste_Anime =
   read_html()
 source("Season watch/FONCTIONS.R")
 
+safe_read = safely(read_html)
+
 # SCRIPT ------------------------------------------------------------------
 print("FETCHEZ LA VACHE!")
+
 ANIME =
   Liste_Anime %>%
   ANIMATION()
-safe_read = safely(read_html)
+
 input =
   ANIME$URL %>% as.character %>%
   set_names %>%
@@ -18,8 +21,8 @@ input =
 output = input %>% purrr::transpose()  %>% map(compact)
 input = output$result
 
-while(length(output$error)){
-  output = output$error %>% names %>%set_names() %>% map(safe_read)
+while (length(output$error)) {
+  output = output$error %>% names %>% set_names() %>% map(safe_read)
   input = list(input, output$result)
 }
 
@@ -34,12 +37,25 @@ Scores =
 Scores = Scores %>% purrr::transpose() %>% .$result
 
 output =
-  list(URL=ANIME$URL %>% as.character %>% set_names,
-       output=Scores,
+  list(URL = ANIME$URL %>% as.character %>% set_names,
+       output = Scores,
        Sequel = Sequels) %>%
   purrr::transpose() %>%
   map_df(as.data.table) %>%
   mutate_all(.funs = trimws) %>%
   left_join(x = ANIME, by = "URL") %>%
-  mutate(output.Score=output.Score %>% as.numeric,
-        Sequel=Sequel %>% as.logical)
+  mutate(output.Score = output.Score %>% as.numeric,
+         Sequel = Sequel %>% as.logical)
+
+# Sequels -----------------------------------------------------------------
+
+Sequels = output %>% filter(Sequel)
+
+Sequels %>% pull(Title) %>% write.table(file =  "Season watch/Season sequels.csv", row.names = F, quote = F)
+Sequels = "Season watch/Season sequels.csv" %>% readLines()
+
+output =
+  output %>%
+  filter(Sequel,
+         !Title %in% Sequels) %>%
+  anti_join(x = output)
