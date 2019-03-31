@@ -18,16 +18,10 @@ ANIME =
     url = ANIME %>% html_attr(name = "href") %>% str_c("https://myanimelist.net", .)
   )
 
-source(file = "anidb jugement comparatif/FONCTIONS.R")
-Selection = LIST(url = "https://graph.anime.plus/Altermedia/list,anime") %>%
-  select(Title = Player)
-ANIME=inner_join(x = ANIME, y = Selection, by = "Title")
-
 
 # Fetch manga sources -----------------------------------------------------
 safe_read = safely(read_html)
 MangaList = ANIME$url %>% as.character() %>% SAFE_FETCH()
-MangaList = MangaList %>% flatten
 
 MAL_sources = MangaList %>% map(SOURCING) %>% flatten_chr() %>% unique()
 

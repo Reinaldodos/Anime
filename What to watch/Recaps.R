@@ -11,7 +11,7 @@ Dropped =
     "https://myanimelist.net/animelist/Altermedia?status=3&tag=",
     "https://myanimelist.net/animelist/Altermedia?status=4&tag="
   ) %>%
-  # .[3:4] %>%
+  .[c(1, 4)] %>%
   map(read_html) %>%
   map(.f = ~ html_nodes(x = ., css = ".animetitle"))
 
@@ -43,6 +43,6 @@ FINAL =
 FINAL %>%
   filter(grepl(pattern = "Summary", x = X1)) %>%
   distinct(X2) %>%
-  write_csv(path = "../What to watch/Recaps.csv")
+  write_csv(path = "./What to watch/Recaps.csv")
 
 FINAL %>% split(x = .$X2, f = .$X1)

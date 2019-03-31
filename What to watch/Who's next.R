@@ -24,18 +24,21 @@ Liste =
   mutate(Stop = (1 + floor(Nb / Eps_Saison)) * Eps_Saison) %>%
   mutate(Eps = pmin(Stop, Eps)) %>%
   mutate(Reste = Eps - Nb) %>%
-  FILTRAGE(condition_new = "n", condition_crap = "n")
+  FILTRAGE(condition_new = "y", condition_crap = "n")
 
 # Modelization ------------------------------------------------------------
 Torrents =
   c(
-    "Lain",
-    "Xamdou",
+    "Guu",
     "Touch",
-    "Ginga",
+    "Eiyuu",
     "Terra",
-    "Romeo",
-    "Lupin"
+    "Ippo",
+    "Jin",
+    "Sakura",
+    "Metal",
+    "LIFE",
+    "Xamdou"
   )
 
 # Liste =
