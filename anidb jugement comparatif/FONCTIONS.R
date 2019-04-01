@@ -1,5 +1,5 @@
 BASE64ENCODE = function(string) {
-  require(base64enc)
+  pacman::p_load(base64enc)
   string %>% charToRaw() %>% base64encode() %>% return()
 }
 
@@ -51,7 +51,7 @@ CHANGES <- function(url) {
 }
 
 CLUSTERING = function(Table, url){
-  require(igraph)
+  pacman::p_load(igraph)
   table_graphe =
     readRDS(file =
               "anidb jugement comparatif/Reseau") %>%
@@ -78,7 +78,7 @@ CLUSTERING = function(Table, url){
 }
 
 COMBATTANTS <- function(Table, Results) {
-  require(tidyr)
+  pacman::p_load(tidyr)
   Combats =
     tidyr::crossing(Table, Table) %>% data.table %>%
     rename(An1 = Player, An2 = Player1) %>%
@@ -117,7 +117,7 @@ COMPARAISON <- function(Scores, SEUIL, Table) {
     spread(key = Lose, value = n) %>%
     data.table()
 
-  require(eba)
+  pacman::p_load(eba)
   Rank =
     # eba(M = input %>% select(-Win))
     thurstone(M = input %>% select(-Win))
@@ -125,8 +125,8 @@ COMPARAISON <- function(Scores, SEUIL, Table) {
 }
 
 ELO <- function(Table, Results) {
-  require(data.table)
-  require(dplyr)
+  pacman::p_load(data.table)
+  pacman::p_load(dplyr)
 
   N = 1
   "Nouveaux scores" %>% cat(sep = "\n")
@@ -158,7 +158,7 @@ FIGHT <- function(Match) {
 }
 
 LISTER <- function(Table) {
-  require(dplyr)
+  pacman::p_load(dplyr)
   Table = arrange(Table, Player)
   if (nrow(Table) <= 1)
   {
@@ -166,7 +166,7 @@ LISTER <- function(Table) {
   } else {
     Liste = Table$Player
 
-    require(foreach)
+    pacman::p_load(foreach)
     Coupe = foreach(anime = Liste, .combine = rbind) %do%
       cbind.data.frame(anime, Liste[match(anime, table = Liste):length(Liste)])  %>%
       data.table()
@@ -187,9 +187,9 @@ New_Round = function(Sous_Liste) {
     sample_n(size = 1) %>%
     data.table()
 
-  require(rvest)
+  pacman::p_load(rvest)
   # Récupérer les scores de chaque match
-  require(foreach)
+  pacman::p_load(foreach)
   Resultats = foreach(match = 1:nrow(Sous_Liste)) %do%
     FIGHT(Match = Sous_Liste[match]) %>%
     rbindlist()
@@ -212,18 +212,17 @@ New_Round = function(Sous_Liste) {
 SCORE_FINAL <- function(url) {
   TABLE = url %>% SCORING()
 
-  Rating = TABLE$Rank
+  pacman::p_load(classInt)
+  classes = classIntervals(var = TABLE$Rating, n = 10, style = "jenks")
 
-  Rating = Rating - min(Rating)
-  Rating = (Rating / max(Rating)) * 9.99
-
-  TABLE$Note = (1 + Rating) %>% floor()
-
-  TABLE %>% return()
+  TABLE %>%
+    mutate(Groupe = cut(x = Rating, breaks = classes$brks, include.lowest = T)) %>%
+    mutate(Note = dense_rank(Groupe)) %>%
+    return()
 }
 
 SCORING <- function(url) {
-  require(data.table)
+  pacman::p_load(data.table)
   Table = LIST(url)
   input = Table %>% Get_results()
 
