@@ -1,6 +1,6 @@
 url = "http://graph.anime.plus/Altermedia/list,anime"
 pacman::p_load(tidyverse, rio, data.table)
-source("anidb jugement comparatif/FONCTIONS.R")
+source("anidb jugement comparatif/FONCTIONS.R", encoding = "UTF-8")
 LIST <- function(url){
   pacman::p_load(rvest)
   pacman::p_load(data.table)
