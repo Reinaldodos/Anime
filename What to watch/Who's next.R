@@ -29,23 +29,18 @@ Liste =
 # Modelization ------------------------------------------------------------
 Torrents =
   c(
-    "Guu",
-    "Touch",
-    "Eiyuu",
-    "Terra",
-    "Ippo",
-    "Jin",
-    "Sakura",
-    "Metal",
-    "LIFE",
-    "Xamdou"
+    # "Atama",
+    # "Life",
+    # "Gaiden",
+    # "Touch",
+    "1999"
   )
 
-# Liste =
-#   Torrents %>%
-#   map_df(.f = ~filter(.data = Liste,
-#                    str_detect(string = `Anime Title`, pattern = .))) %>%
-#   anti_join(x = Liste)
+Liste =
+  Torrents %>%
+  map_df(.f = ~filter(.data = Liste,
+                   str_detect(string = `Anime Title`, pattern = .))) %>%
+  anti_join(x = Liste)
 
 map(
   .x = c("(Next-Nb)/(Eps-Nb)", "1/(Eps-Next)", "Next/Eps"),
