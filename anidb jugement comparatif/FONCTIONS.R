@@ -47,7 +47,7 @@ CHANGES <- function(url) {
 
   To_Change %>% View()
 
-  To_Change %>% return()
+  FINAL %>% return()
 }
 
 CLUSTERING = function(Table, url){
@@ -209,33 +209,20 @@ New_Round = function(Sous_Liste) {
   )
 }
 
+
 SCORE_FINAL <- function(url) {
   pacman::p_load(classInt)
   TABLE = url %>% SCORING()
 
-  TESTS = c("sd",
-            "equal",
-            "pretty",
-            "quantile",
-            "kmeans",
-            "hclust",
-            "bclust",
-            "fisher",
-            "jenks") %>% set_names() %>%
-    map(.f = ~ classIntervals(var = TABLE$Rating,
+Classes=classIntervals(var = TABLE$Rating,
                               n = 10,
-                              style = .)) %>%
-    map(.f = ~ .$brks) %>%
-    map(.f = ~ mutate(.data = TABLE,
-                      Groupe = cut(x = Rating,
-                                   breaks = .,
+                              style = "sd")
+    mutate(.data = TABLE,
+           Groupe = cut(x = Rating,
+                                   breaks = Classes$brks,
                                    include.lowest = T)) %>%
-        mutate(Note = dense_rank(Groupe)) %>%
-        mutate(Note = Note + 10 - max(Note))) %>%
-    bind_rows(.id = "style")
-
-  TESTS %>% count(Player, Note) %>%
-    group_by(Player) %>% filter(n == max(n)) %>% ungroup %>% select(-n) %>%
+          mutate(Note = dense_rank(Groupe)) %>%
+          mutate(Note = Note + 10 - max(Note)) %>%
     return()
 }
 
