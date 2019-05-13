@@ -214,10 +214,11 @@ SCORE_FINAL <- function(url) {
   pacman::p_load(classInt)
   TABLE = url %>% SCORING()
 
-Classes=classIntervals(var = TABLE$Rating,
-                              n = 10,
-                              style = "sd")
-    mutate(.data = TABLE,
+  Classes = classIntervals(var = TABLE$Rating,
+                           n = 10,
+                           style = "sd")
+
+  mutate(.data = TABLE,
            Groupe = cut(x = Rating,
                                    breaks = Classes$brks,
                                    include.lowest = T)) %>%
