@@ -56,6 +56,5 @@ Sequels = "Season watch/Season sequels.csv" %>% readLines()
 
 output =
   output %>%
-  filter(Sequel,
-         !Title %in% Sequels) %>%
+  filter(Title %in% Sequels) %>%
   anti_join(x = output)

@@ -11,7 +11,7 @@ Dropped =
     "https://myanimelist.net/animelist/Altermedia?status=3&tag=",
     "https://myanimelist.net/animelist/Altermedia?status=4&tag="
   ) %>%
-  .[c(1, 4)] %>%
+  # .[c(1, 4)] %>%
   map(read_html) %>%
   map(.f = ~ html_nodes(x = ., css = ".animetitle"))
 
@@ -25,7 +25,7 @@ Dropped =
 
 Dropped = Dropped[Select]
 
-safe_read=safely(read_html)
+safe_read = safely(read_html)
 
 RElated =
   Dropped  %>%
@@ -33,6 +33,7 @@ RElated =
   map(.f = ~.$result)
 
 safe_node = safely(html_nodes)
+
 FINAL =
   RElated %>%
   map(.f = ~ safe_node(x = ., css = ".anime_detail_related_anime")) %>%
