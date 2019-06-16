@@ -3,16 +3,18 @@ pacman::p_load(rvest, data.table, tidyverse, igraph)
 url = "http://graph.anime.plus/Altermedia/list,anime"
 Selection =
   url %>% read_html %>% html_table %>% rbindlist() %>%
-  filter(R %>% as.numeric() %>% is.na()) %>% .$Title
+  filter(R %>% as.numeric() %>% is.na()) %>% pull(Title)
 
 Dropped =
   c("https://myanimelist.net/animelist/Altermedia?status=1&tag=",
-    "https://myanimelist.net/animelist/Altermedia?status=2&tag=",
+    # "https://myanimelist.net/animelist/Altermedia?status=2&tag=",
     "https://myanimelist.net/animelist/Altermedia?status=3&tag=",
     "https://myanimelist.net/animelist/Altermedia?status=4&tag="
   ) %>%
   # .[c(1, 4)] %>%
-  map(read_html) %>%
+  map(read_html)
+
+Dropped =Dropped %>%
   map(.f = ~ html_nodes(x = ., css = ".animetitle"))
 
 Select = (Dropped %>% map(html_text) %>% map(trimws) %>% unlist()) %in% Selection
@@ -41,9 +43,16 @@ FINAL =
   map(.f = ~ .$result) %>%
   map(rbindlist) %>% bind_rows()
 
+MAL =
+  url %>% read_html %>% html_table %>% rbindlist() %>%
+  pull(Title)
+
+FINAL = FINAL %>% filter(!X2 %in% MAL)
+
 FINAL %>%
   filter(grepl(pattern = "Summary", x = X1)) %>%
   distinct(X2) %>%
   write_csv(path = "./What to watch/Recaps.csv")
 
 FINAL %>% split(x = .$X2, f = .$X1)
+
