@@ -20,10 +20,27 @@ BATTLE <- function(Table, Clusters, Results) {
 }
 
 CHANGES <- function(url) {
+  TABLE = url %>% SCORING()
   FINAL =
-    url %>% SCORE_FINAL() %>%
+    c("sd",
+      "equal",
+      "pretty",
+      "hclust",
+      "bclust",
+      "quantile",
+      "kmeans",
+      "jenks",
+      "fisher") %>%
+    set_names() %>%
+    map(.f = SCORE_FINAL, TABLE = TABLE) %>%
+    bind_rows(.id = "style")  %>%
+    count(Player,Rating, Note) %>%
+    group_by(Player) %>% filter(n == max(n)) %>% ungroup %>%
     inner_join(LIST(url) %>% select(Player, Avant = Rating)) %>%
-    mutate(Gap = abs(Note - Avant))
+    mutate(Gap = abs(Note - Avant)) %>%
+    select(-n)
+
+  FINAL = FINAL %>% group_by(Player) %>% filter(Note==max(Note)) %>% ungroup
 
   To_Change = FINAL %>% filter(Gap != 0)
 
@@ -210,13 +227,12 @@ New_Round = function(Sous_Liste) {
 }
 
 
-SCORE_FINAL <- function(url) {
+SCORE_FINAL <- function(TABLE, STYLE) {
   pacman::p_load(classInt)
-  TABLE = url %>% SCORING()
 
   Classes = classIntervals(var = TABLE$Rating,
                            n = 10,
-                           style = "sd")
+                           style = STYLE)
 
   mutate(.data = TABLE,
            Groupe = cut(x = Rating,
@@ -278,8 +294,8 @@ Get_results <- function(Table) {
     inner_join(y = Table %>% select(AN2 = Base64, An2 = Player),
                by = "AN2")
 
-  list(Table=Table, Results=Results) %>%
-  return()
+  list(Table = Table, Results = Results) %>%
+    return()
 }
 
 

@@ -1,6 +1,7 @@
 url = "http://graph.anime.plus/Altermedia/list,anime"
 pacman::p_load(tidyverse, rio, data.table)
 source("anidb jugement comparatif/FONCTIONS.R", encoding = "UTF-8")
+
 LIST <- function(url){
   pacman::p_load(rvest)
   pacman::p_load(data.table)
@@ -25,7 +26,6 @@ LIST <- function(url){
 
   return(Table[, .(Player, Rating, Note, url)])
 }
-
 JOB <- function(url) {
   "Purger les combats" %>% cat(sep = "\n")
   source(file = "anidb jugement comparatif/Purger les combats.R", encoding = "UTF-8")

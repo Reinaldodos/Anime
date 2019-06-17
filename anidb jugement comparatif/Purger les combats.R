@@ -17,7 +17,9 @@ SELECAO =
   filter(Score == PREV) %>% unique()
 
 "A exclure: " %>% cat(sep = "\n")
-anti_join(x = input$Results, y = SELECAO, by = c("An1", "An2", "Score")) %>%
+anti_join(x = input$Results,
+          y = SELECAO,
+          by = c("An1", "An2", "Score")) %>%
   select(An1, An2, Score) %>%
   print
 
@@ -33,3 +35,11 @@ SELECAO %>% select(AN1, AN2, Score) %>%
   )
 
 NEWBIES(input = Table %>% Get_results())
+
+
+# Premiers combats --------------------------------------------------------
+
+source(file = "anidb jugement comparatif/Premiers combats.R")
+while (length(Premiers_combats) > 0) {
+  source(file = "anidb jugement comparatif/Premiers combats.R")
+}
