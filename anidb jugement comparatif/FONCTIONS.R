@@ -2,23 +2,22 @@ BASE64ENCODE = function(string) {
   pacman::p_load(base64enc)
   string %>% charToRaw() %>% base64encode() %>% return()
 }
+BATTLE <- function(pool) {
+  Matches =
+    pool %>%
+    rename(An1 = V1, An2 = V2) %>%
+    inner_join(y = data$Table %>%
+                 select(An1 = Player, AN1 = Base64),
+               by = "An1") %>%
+    inner_join(y = data$Table %>%
+                 select(An2 = Player, AN2 = Base64),
+               by = "An2")
 
-BATTLE <- function(Table, Clusters, Results) {
-  safe_COMBAT = safely(COMBATTANTS)
-
-  Bataille_Clusters =
-    Table %>%
-    inner_join(Clusters, by = "Player") %>% split(f = .$Groupe) %>%
-    map(.f = safe_COMBAT, Results = Results) %>% compact %>%
-    map_df(.f = ~ .$result) %>% unique()
-
-  Bataille = Table %>% COMBATTANTS(Results = Results)
-
-  bind_rows(Bataille, Bataille_Clusters) %>%
-    select(contains("An"), contains("Base")) %>% unique() %>%
-    return()
+  Matches %>%
+    split(f = paste(.$An1, .$An2)) %>%
+    sample(size = length(.)) %>%
+    walk(New_Round)
 }
-
 CHANGES <- function(url) {
   TABLE = url %>% SCORING()
   FINAL =
@@ -66,7 +65,6 @@ CHANGES <- function(url) {
 
   FINAL %>% return()
 }
-
 CLUSTERING = function(Table, url){
   pacman::p_load(igraph)
   table_graphe =
@@ -93,7 +91,6 @@ CLUSTERING = function(Table, url){
 
   Clusters %>% select(Groupe, Player) %>% return()
 }
-
 COMBATTANTS <- function(Table, Results) {
   pacman::p_load(tidyr)
   Combats =
@@ -112,7 +109,6 @@ COMBATTANTS <- function(Table, Results) {
     unique() %>%
     return()
 }
-
 COMPARAISON <- function(Scores, SEUIL, Table) {
   input =
     bind_rows(Scores$`1` %>%
@@ -140,40 +136,76 @@ COMPARAISON <- function(Scores, SEUIL, Table) {
     thurstone(M = input %>% select(-Win))
   return(Rank)
 }
-
 ELO <- function(Table, Results) {
-  pacman::p_load(data.table)
-  pacman::p_load(dplyr)
+  mod1 =
+    Results %>%
+    data.table() %>%
+    select(An2, An1, Score) %>%
+    mutate_all(type.convert) %>%
+    mutate(Score = Score - 1) %>%
+    sirt::btm(ignore.ties = T, conv = .01, maxiter = 1000)
 
-  N = 1
-  "Nouveaux scores" %>% cat(sep = "\n")
-
-  Rank = COMPARAISON(Scores = Results %>%
-                       split(f = .$Score), SEUIL = N, Table = Table)
-
-  Rank$goodness.of.fit %>% print()
-
-  foo =
-    Rank$estimate %>% as.data.frame()
-
-  foo =
-    row.names(foo) %>%
-    cbind.data.frame(foo$.) %>%
-    left_join(x = Table, by = c("Player" = ".")) %>%
-    select(Player, `foo$.`) %>%
-    rename(Rating = `foo$.`) %>%
-    data.table()
-
-  foo[is.na(Rating)]$Rating = 0
-  return(foo)
+  mod1$effects %>%
+    rename(Player=individual,
+           Rating=theta) %>%
+    return()
 }
-
 FIGHT <- function(Match) {
   Match = data.table(Match)
   Match$Score = readline(paste(Match$An1, "VS", Match$An2, ": ", sep = " "))
   return(Match)
 }
+Get_results <- function(Table) {
+  Table$Base64 =
+    Table$Player %>% as.character() %>% map_chr(BASE64ENCODE)
 
+  "Import des résultats" %>% cat(sep = "\n")
+
+  Results =
+    fread(input = "anidb jugement comparatif/Combats menes.csv",
+          sep = "|",
+          encoding = "UTF-8",
+          colClasses = "character") %>%
+    mutate_all(trimws)  %>%
+    inner_join(y = Table %>% select(AN1 = Base64, An1 = Player),
+               by = "AN1") %>%
+    inner_join(y = Table %>% select(AN2 = Base64, An2 = Player),
+               by = "AN2")
+
+  list(Table = Table, Results = Results) %>%
+    return()
+}
+Graph_To_Table = function(graph) {
+  require(igraph)
+  graph %>%
+    as_edgelist() %>%
+    data.table() %>%
+    return()
+}
+LIST <- function(url){
+  pacman::p_load(rvest)
+  pacman::p_load(data.table)
+  Table = url %>%
+    read_html() %>%
+    html_table()
+
+  pacman::p_load(dplyr)
+  Table = Table[[1]] %>%
+    mutate(
+      R = suppressWarnings(as.integer(R)),
+      Diff = as.numeric(Diff),
+      Note = R - Diff
+    ) %>%
+    data.table()
+
+  Table$url = url %>% read_html() %>% html_nodes(css = "#main a") %>% html_attr(name = "href")
+  Table$Title = url %>% read_html() %>% html_nodes(css = "#main a") %>% html_text()
+  Table = Table[!is.na(Table$R)]
+
+  colnames(Table) = c("S", "Player", "Rating", "Diff", "Note", "url")
+
+  return(Table[, .(Player, Rating, Note, url)])
+}
 LISTER <- function(Table) {
   pacman::p_load(dplyr)
   Table = arrange(Table, Player)
@@ -196,7 +228,15 @@ LISTER <- function(Table) {
   return(Draw)
   # return(Draw[1:min(nrow(Table), nrow(Draw))])
 }
+NEIGHBOUR <- function(Voisinage, ref) {
+  Reference = Voisinage %>% filter(Player == ref) %>% as.list()
 
+  Voisinage %>%
+    filter(MAX > Reference$MIN,
+           MIN < Reference$MAX) %>%
+    distinct(Player) %>% droplevels() %>%
+    return()
+}
 New_Round = function(Sous_Liste) {
   Sous_Liste =
     Sous_Liste %>%
@@ -225,8 +265,25 @@ New_Round = function(Sous_Liste) {
     col.names = T
   )
 }
+NEWBIES <- function(input) {
+  Newbies =
+    input$Results %>% select(An1, An2) %>%
+    as.list() %>% flatten_chr() %>% data.table(Player = .) %>%
+    count(Player) %>%
+    left_join(x = input$Table %>% distinct(Player), by = "Player") %>%
+    filter(is.na(n))
 
+  BATTLE(
+    Table = input$Table,
+    Results = input$Results,
+    Clusters = CLUSTERING(Table = input$Table, url = url)) %>%
+    filter(An1 %in% Newbies$Player | An2 %in% Newbies$Player) %>%
+    rename(AN1 = Base64, AN2 = Base641) %>%
+    split(f = paste(.$An1, .$An2)) %>%
+    sample(size = length(.)) %>%
+    walk(New_Round)
 
+}
 SCORE_FINAL <- function(TABLE, STYLE) {
   pacman::p_load(classInt)
 
@@ -239,10 +296,8 @@ SCORE_FINAL <- function(TABLE, STYLE) {
                                    breaks = Classes$brks,
                                    include.lowest = T)) %>%
           mutate(Note = dense_rank(Groupe)) %>%
-          mutate(Note = Note + 10 - max(Note)) %>%
     return()
 }
-
 SCORING <- function(url) {
   pacman::p_load(data.table)
   Table = LIST(url)
@@ -252,7 +307,26 @@ SCORING <- function(url) {
   ELO(Table = Table, Results = input$Results) %>%
     return()
 }
+SELECT <- function(graphe) {
+  Selection =
+    intersection(graphe, Franchise) %>%
+    Graph_To_Table()
 
+  if (nrow(Selection) == 0) {
+    Selection =
+      intersection(graphe, Reseau) %>%
+      Graph_To_Table()
+  }
+  if (nrow(Selection) == 0){
+    Selection =
+      graphe %>%
+      Graph_To_Table() %>%
+      sample_n(1) %>%
+      ToGraph()  %>%
+      Graph_To_Table()
+  }
+  return(Selection)
+}
 SCRIPT2 <- function(url) {
   Table = LIST(url)
   input = Table %>% Get_results()
@@ -276,45 +350,15 @@ SCRIPT2 <- function(url) {
     sample(size = length(.)) %>%
     walk(New_Round)
 }
-
-Get_results <- function(Table) {
-  Table$Base64 =
-    Table$Player %>% map_chr(BASE64ENCODE)
-
-  "Import des résultats" %>% cat(sep = "\n")
-
-  Results =
-    fread(input = "anidb jugement comparatif/Combats menes.csv",
-          sep = "|",
-          encoding = "UTF-8",
-          colClasses = "character") %>%
-    mutate_all(trimws)  %>%
-    inner_join(y = Table %>% select(AN1 = Base64, An1 = Player),
-               by = "AN1") %>%
-    inner_join(y = Table %>% select(AN2 = Base64, An2 = Player),
-               by = "AN2")
-
-  list(Table = Table, Results = Results) %>%
+ToGraph = function(data){
+  require(igraph)
+  data %>%
+    as.matrix() %>%
+    graph.edgelist(directed = F) %>%
+    simplify(remove.multiple = T, remove.loops = T) %>%
     return()
 }
 
 
-NEWBIES <- function(input) {
-  Newbies =
-    input$Results %>% select(An1, An2) %>%
-    as.list() %>% flatten_chr() %>% data.table(Player = .) %>%
-    count(Player) %>%
-    left_join(x = input$Table %>% distinct(Player), by = "Player") %>%
-    filter(is.na(n))
 
-  BATTLE(
-    Table = input$Table,
-    Results = input$Results,
-    Clusters = CLUSTERING(Table = input$Table, url = url)) %>%
-    filter(An1 %in% Newbies$Player | An2 %in% Newbies$Player) %>%
-    rename(AN1 = Base64, AN2 = Base641) %>%
-    split(f = paste(.$An1, .$An2)) %>%
-    sample(size = length(.)) %>%
-    walk(New_Round)
 
-}

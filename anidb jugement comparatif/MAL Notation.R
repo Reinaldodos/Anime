@@ -2,42 +2,69 @@ url = "http://graph.anime.plus/Altermedia/list,anime"
 pacman::p_load(tidyverse, rio, data.table)
 source("anidb jugement comparatif/FONCTIONS.R", encoding = "UTF-8")
 
-LIST <- function(url){
-  pacman::p_load(rvest)
-  pacman::p_load(data.table)
-  Table = url %>%
-    read_html() %>%
-    html_table()
+# récupérer les données
+data = url %>% LIST() %>% Get_results()
+# récupérer les relations
+Reseau = "anidb jugement comparatif/Reseau" %>% read_rds()
+Franchise = Reseau %>% filter(Recs == max(Recs))
+Reseau = anti_join(x = Reseau, y = Franchise)
 
-  pacman::p_load(dplyr)
-  Table = Table[[1]] %>%
-    mutate(
-      R = suppressWarnings(as.integer(R)),
-      Diff = as.numeric(Diff),
-      Note = R - Diff
-    ) %>%
-    data.table()
+# graphisation
+Franchise =
+  Franchise %>% filter(Title != "") %>%
+  select(-Recs) %>%
+  ToGraph()
 
-  Table$url = url %>% read_html() %>% html_nodes(css = "#main a") %>% html_attr(name = "href")
-  Table$Title = url %>% read_html() %>% html_nodes(css = "#main a") %>% html_text()
-  Table = Table[!is.na(Table$R)]
+Reseau =
+  Reseau %>%
+  select(-Recs) %>%
+  ToGraph()
 
-  colnames(Table) = c("S", "Player", "Rating", "Diff", "Note", "url")
+# Newbies -----------------------------------------------------------------
+Newbies =
+  data$Results %>% select(An1, An2) %>%
+  as.list() %>% flatten_chr() %>% data.table(Player = .) %>%
+  count(Player) %>%
+  anti_join(x = data$Table %>% distinct(Player), by = "Player")
 
-  return(Table[, .(Player, Rating, Note, url)])
+while(nrow(Newbies) > 0) {
+  Newbies %>%
+    tidyr::crossing(data$Table) %>%
+    select(An1 = Player, An2 = Player1) %>%
+    ToGraph() %>%
+    SELECT() %>%
+    BATTLE()
+
+  data = data$Table %>% Get_results()
+  Newbies =
+    data$Results %>% select(An1, An2) %>%
+    as.list() %>% flatten_chr() %>% data.table(Player = .) %>%
+    count(Player) %>%
+    anti_join(x = data$Table %>% distinct(Player), by = "Player")
 }
-JOB <- function(url) {
-  "Purger les combats" %>% cat(sep = "\n")
-  source(file = "anidb jugement comparatif/Purger les combats.R", encoding = "UTF-8")
 
-  EGUENNE = readline(prompt = "Encore? o/n \t")
-  while (EGUENNE == "o") {
-    SCRIPT2(url = url)
-    EGUENNE = readline(prompt = "Encore? o/n \t")
-  }
 
-  FINAL = url %>% CHANGES
-  return(FINAL)
+# Adaptive Comaprative Judgement ------------------------------------------
+repeat{
+  data = data$Table %>% Get_results()
+  output = ELO(Table = data$Table, Results = data$Results)
+
+  Voisinage =
+    output %>%
+    group_by(Player) %>%
+    summarise(MIN = Rating - se.theta,
+              MAX = Rating + se.theta)
+
+  Batch =
+    output %>%
+    filter(se.theta == max(se.theta)) %>%
+    pull(Player) %>%
+    as.character() %>%
+    set_names() %>%
+    map(.f = NEIGHBOUR, Voisinage = Voisinage) %>%
+    bind_rows(.id = "Ref") %>%
+    ToGraph() %>%
+    SELECT()
+
+  Batch %>% BATTLE()
 }
-
-FINAL = JOB(url = url)
