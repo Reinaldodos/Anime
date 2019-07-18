@@ -143,7 +143,7 @@ ELO <- function(Table, Results) {
     select(An2, An1, Score) %>%
     mutate_all(type.convert) %>%
     mutate(Score = Score - 1) %>%
-    sirt::btm(ignore.ties = T, conv = .01, maxiter = 1000)
+    sirt::btm(ignore.ties = T, conv = 1/1000000, maxiter = 1000)
 
   mod1$effects %>%
     rename(Player=individual,
