@@ -57,14 +57,14 @@ repeat{
 
   Batch =
     output %>%
-    filter(se.theta == max(se.theta)) %>%
+    top_n(n = 3, wt = se.theta) %>% droplevels() %>%
     pull(Player) %>%
-    as.character() %>%
+    levels() %>%
     set_names() %>%
     map(.f = NEIGHBOUR, Voisinage = Voisinage) %>%
-    bind_rows(.id = "Ref") %>%
-    ToGraph() %>%
-    SELECT()
+    bind_rows(.id = "Ref") %>% split(f = .$Ref) %>%
+    map(ToGraph) %>%
+    map(SELECT)
 
-  Batch %>% BATTLE()
+  Batch %>% bind_rows() %>% BATTLE()
 }
