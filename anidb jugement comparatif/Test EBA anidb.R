@@ -1,64 +1,79 @@
 pacman::p_load(tidyverse, data.table)
-read_excel_sheets = function(file){
+read_excel_sheets = function(file) {
   require(readxl)
   require(purrr)
   Onglets = excel_sheets(path = file)
   Onglets %>%
     set_names %>%
-    map(.f = ~read_excel(path = file, sheet = .)) %>%
+    map(.f = ~ read_excel(path = file, sheet = .)) %>%
     return
 }
 
-input = "anidb jugement comparatif/TEST EBA.xlsx" %>% read_excel_sheets
-Liste = input$Feuil1 %>% pull(Title)
+input =
+  "anidb jugement comparatif/TEST EBA.xlsx" %>% read_excel_sheets %>%
+  bind_rows(.id = "Judge")
+
+Liste = input %>% filter(Judge == "Feuil1") %>% unnest() %>% pull(Title)
 
 JUDGING <- function(test) {
-  test %>% select(Player = Title, Rating = Vote) %>%
-    # mutate(Rating = case_when(is.na(Rating) ~ 0,
-    #                           TRUE ~ Rating %>% as.double)) %>%
-    tidyr::crossing(.,.) %>%
-    filter(Player != Player1,
-           Rating > Rating1) %>%
-    mutate(Score = 1) %>%
-    select(-contains("Rating")) %>%
-    return
+  test %>% select(Title, Vote) %>%
+    mutate(id = dense_rank(Title)) %>%
+    tidyr::crossing(., .) %>%
+    filter(id < id1) %>%
+    mutate(Score = case_when(Vote > Vote1 ~ 1,
+                             Vote < Vote1 ~ 0,
+                             Vote == Vote1 ~ .5)) %>%
+    select(Player = Title, Player1 = Title1, Score) %>%
+    return()
 }
 
-output =
+input =
   input %>%
-  map_df(JUDGING) %>%
-  group_by(Player, Player1) %>% summarise(Score = sum(Score)) %>%
-  data.table
+  group_by(Judge) %>% nest %>%
+  mutate(Jugements = map(.x = data, .f = JUDGING))
+
+output = input %>% select(Judge, Jugements) %>% unnest()
 
 Selection =
-  output %>%
-  filter(Player %in% Liste & Player1 %in% Liste) %>%
-  distinct(Player, Player1) %>% as.list %>% flatten_chr %>% unique
+  tidyr::crossing(Player = Liste, Player1 = Liste) %>%
+  inner_join(x = output, by = c("Player", "Player1"))
 
-Table =
-  tidyr::crossing(Player = Selection, Player1 = Selection) %>%
-  left_join(y = output, by = c("Player", "Player1")) %>%
-  mutate(Score = replace_na(data = Score, replace = 0)) %>%
-  spread(key = Player1, value = Score) %>%
-  data.table()
+pacman::p_load(sirt)
+FINAL =
+  sirt::btm(
+    data = output %>% select(-Judge) %>% data.table(),
+    # judge = Selection$Judge,
+    fix.eta = 0,
+    conv = 0.00001,
+    maxiter = 100000,
+    ignore.ties = F
+  )
 
-pacman::p_load(eba)
-Rank =
-  Table %>% select(-Player) %>%
-  thurstone
+FINAL %>% summary()
 
-foo = Rank$estimate %>% as.data.frame
+FINAL$effects %>%
+  select(Player = individual, Rating = theta) %>%
+  mutate(Rating = scale(Rating)) %>%
+  pull(Rating) %>% hist
 
-foo =
-  row.names(foo) %>%
-  cbind.data.frame(Title = ., Rating = foo$.) %>%
-  mutate(Rank = dense_rank(desc(Rating)),
-         Score = Rating)
+"anidb jugement comparatif/FONCTIONS.R" %>% source()
+COmparaison =
+  FINAL$effects %>%
+  select(Player = individual, Rating = theta) %>%
+  SCORE_FINAL(STYLE = "sd", N = nrow(FINAL$effects) / 2) %>%
+  mutate(Note = round(Note / max(Note) * 10, digits = 2)) %>%
+  inner_join(y =
+               input %>% select(data) %>% unnest %>%
+               group_by(Player = Title) %>%
+               summarise(Score = mean(as.numeric(Vote), na.rm = T)))
 
-foo$Rating = foo$Rating - min(foo$Rating)
-foo$Rating = foo$Rating / max(foo$Rating) * 9
-foo$Rating = foo$Rating + 1
-foo$Rating = foo$Rating %>% round(digits = 0)
+COmparaison %>%
+  ggplot(mapping = aes(x = Note, y = Score)) +
+  geom_point() +
+  geom_smooth()
 
-foo$Rating %>% hist
-foo %>% split(x = .$Title %>% as.character, f = .$Rating)
+COmparaison %>%
+  gather(key = VAR, value = VAL, Score, Note) %>%
+  ggplot(mapping = aes(x = scale(VAL), fill = VAR)) +
+  geom_density(alpha = .3)
+
