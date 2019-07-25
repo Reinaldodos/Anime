@@ -3,10 +3,10 @@ source(file = "What to watch/Fonctions.R", encoding = "UTF-8")
 # Fetching ----------------------------------------------------------------
 Pages =
   list(
-    Watching = "https://myanimelist.net/animelist/Altermedia?status=1&tag="
     # Planned = "https://myanimelist.net/animelist/Altermedia?status=7&tag=",
     # OnHold = "https://myanimelist.net/animelist/Altermedia?status=3&tag=",
     # Dropped = "https://myanimelist.net/animelist/Altermedia?status=4&tag="
+    Watching = "https://myanimelist.net/animelist/Altermedia?status=1&tag="
        )
 
 input =
@@ -27,20 +27,20 @@ Liste =
   FILTRAGE(condition_new = "y", condition_crap = "n")
 
 # Modelization ------------------------------------------------------------
-Torrents =
-  c(
-    # "Atama",
-    # "Life",
-    # "Gaiden",
-    # "Touch",
-    "1999"
-  )
-
-Liste =
-  Torrents %>%
-  map_df(.f = ~filter(.data = Liste,
-                   str_detect(string = `Anime Title`, pattern = .))) %>%
-  anti_join(x = Liste)
+# Torrents =
+#   c(
+#     # "Atama",
+#     # "Life",
+#     # "Gaiden",
+#     # "Touch",
+#     # "1999"
+#   )
+#
+# Liste =
+#   Torrents %>%
+#   map_df(.f = ~filter(.data = Liste,
+#                    str_detect(string = `Anime Title`, pattern = .))) %>%
+#   anti_join(x = Liste)
 
 map(
   .x = c("(Next-Nb)/(Eps-Nb)", "1/(Eps-Next)", "Next/Eps"),
