@@ -66,5 +66,5 @@ repeat{
     map(ToGraph) %>%
     map(SELECT)
 
-  Batch %>% bind_rows() %>% BATTLE()
+  Batch %>% rbindlist() %>% BATTLE()
 }
