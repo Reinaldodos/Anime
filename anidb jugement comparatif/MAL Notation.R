@@ -1,3 +1,4 @@
+
 pacman::p_load(tidyverse, rio, data.table)
 source("anidb jugement comparatif/FONCTIONS.R", encoding = "UTF-8")
 
@@ -27,7 +28,7 @@ Newbies =
   count(Player) %>%
   anti_join(x = data$Table %>% distinct(Player), by = "Player")
 
-while(nrow(Newbies) > 0) {
+while (nrow(Newbies) > 0) {
   Newbies %>%
     tidyr::crossing(data$Table) %>%
     select(An1 = Player, An2 = Player1) %>%
@@ -44,8 +45,8 @@ while(nrow(Newbies) > 0) {
 }
 
 
-# Adaptive Comaprative Judgement ------------------------------------------
-repeat{
+# Adaptive Comparative Judgement ------------------------------------------
+repeat {
   data = data$Table %>% Get_results()
   output = ELO(Table = data$Table, Results = data$Results)
 
