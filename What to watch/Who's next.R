@@ -24,23 +24,24 @@ Liste =
   mutate(Stop = (1 + floor(Nb / Eps_Saison)) * Eps_Saison) %>%
   mutate(Eps = pmin(Stop, Eps)) %>%
   mutate(Reste = Eps - Nb) %>%
-  FILTRAGE(condition_new = "y", condition_crap = "n")
+  FILTRAGE(condition_new = "n", condition_crap = "n")
 
 # Modelization ------------------------------------------------------------
-# Torrents =
-#   c(
-#     # "Atama",
-#     # "Life",
-#     # "Gaiden",
-#     # "Touch",
-#     # "1999"
-#   )
-#
-# Liste =
-#   Torrents %>%
-#   map_df(.f = ~filter(.data = Liste,
-#                    str_detect(string = `Anime Title`, pattern = .))) %>%
-#   anti_join(x = Liste)
+Torrents =
+  c(
+    "Gaiden",
+    "Hyouge",
+    "Sunred",
+    "Chihaya",
+    "Ippo",
+    "Mix"
+  )
+
+Liste =
+  Torrents %>%
+  map_df(.f = ~filter(.data = Liste,
+                   str_detect(string = `Anime Title`, pattern = .))) %>%
+  anti_join(x = Liste)
 
 map(
   .x = c("(Next-Nb)/(Eps-Nb)", "1/(Eps-Next)", "Next/Eps"),

@@ -32,7 +32,8 @@ input =
   group_by(Judge) %>% nest %>%
   mutate(Jugements = map(.x = data, .f = JUDGING))
 
-output = input %>% select(Judge, Jugements) %>% unnest()
+output = input %>% select(Judge, Jugements) %>% unnest() %>%
+  filter(!is.na(Score))
 
 Selection =
   tidyr::crossing(Player = Liste, Player1 = Liste) %>%
@@ -44,8 +45,8 @@ FINAL =
     data = output %>% select(-Judge) %>% data.table(),
     # judge = Selection$Judge,
     fix.eta = 0,
-    conv = 0.00001,
-    maxiter = 100000,
+    conv = 1e-05,
+    # maxiter = 100000,
     ignore.ties = F
   )
 
@@ -68,12 +69,15 @@ COmparaison =
                summarise(Score = mean(as.numeric(Vote), na.rm = T)))
 
 COmparaison %>%
-  ggplot(mapping = aes(x = Note, y = Score)) +
-  geom_point() +
-  geom_smooth()
-
-COmparaison %>%
   gather(key = VAR, value = VAL, Score, Note) %>%
   ggplot(mapping = aes(x = scale(VAL), fill = VAR)) +
   geom_density(alpha = .3)
 
+plot =
+  COmparaison %>%
+  ggplot(mapping = aes(x = Note, y = Score, label = Player)) +
+  geom_point() +
+  geom_smooth()
+
+pacman::p_load(plotly)
+ggplotly(plot)

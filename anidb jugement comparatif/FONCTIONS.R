@@ -284,11 +284,11 @@ NEWBIES <- function(input) {
     walk(New_Round)
 
 }
-SCORE_FINAL <- function(TABLE, STYLE) {
+SCORE_FINAL <- function(TABLE, STYLE, N) {
   pacman::p_load(classInt)
 
   Classes = classIntervals(var = TABLE$Rating,
-                           n = 10,
+                           n = N,
                            style = STYLE)
 
   mutate(.data = TABLE,
