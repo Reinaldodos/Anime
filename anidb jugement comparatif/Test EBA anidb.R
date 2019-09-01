@@ -42,7 +42,7 @@ Selection =
 pacman::p_load(sirt)
 FINAL =
   sirt::btm(
-    data = output %>% select(-Judge) %>% data.table(),
+    data = Selection %>% select(-Judge) %>% data.table(),
     # judge = Selection$Judge,
     fix.eta = 0,
     conv = 1e-05,
