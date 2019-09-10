@@ -1,30 +1,69 @@
-Table = url %>% CHANGES()
 
-Selection =
-  Table %>% count(Gap) %>% filter(n<10) %>%
-  inner_join(Table)%>% pull(Player)
+choix =
+  output %>% filter(N1 == 0) %>%
+  droplevels() %>%
+  distinct(Player)
 
-input = Table %>% Get_results()
+if (nrow(choix) > 1) {
+  choix %>%
+    tidyr::crossing(Voisinage) %>%
+    group_by(Player) %>%
+    filter(MIN == min(MIN)) %>% ungroup %>%
+    select(contains("Player")) %>%
+    split(f = .$Player) %>%
+    map(ToGraph) %>%
+    map(SELECT) %>%
+    rbindlist() %>% BATTLE()
+}
 
-Table =
-  input$Table %>%
-  mutate(Rating = scale(x = Rating,
-                        center = TRUE,
-                        scale = TRUE)) %>%
-  # left_join(x = input$Table %>% select(-Rating), by = "Player") %>%
-  data.table() %>%
-  mutate(Rating = case_when(is.na(Rating) ~ 0 ,
-                            TRUE ~ Rating))
+choix =
+  output %>% filter(N0 == 0) %>%
+  droplevels() %>%
+  distinct(Player)
 
+if (nrow(choix) > 1) {
+  choix %>%
+    tidyr::crossing(Voisinage) %>%
+    group_by(Player) %>%
+    filter(MAX == max(MAX)) %>% ungroup %>%
+    select(contains("Player")) %>%
+    split(f = .$Player) %>%
+    map(ToGraph) %>%
+    map(SELECT) %>%
+    rbindlist() %>% BATTLE()
+}
 
-Premiers_combats =
-  BATTLE(Table = Table,
-       Clusters = CLUSTERING(Table = Table ,
-                             url = url),
-       Results = input$Results) %>%
-  rename(AN1 = Base64, AN2 = Base641) %>%
-  filter(An1 %in% Selection | An2 %in% Selection) %>%
-  split(f = paste(.$An1, .$An2)) %>%
-  sample(size = length(.))
+non_fit =
+  output %>% filter(is.na(infit) | is.na(outfit)) %>%
+  droplevels() %>%
+  pull(Player) %>%
+  levels()
 
-Premiers_combats %>% walk(New_Round)
+# data$Results %>%
+#   filter(!An1 %in% non_fit, !An2 %in% non_fit) %>%
+#   select(AN1, AN2, Score) %>%
+#   write.table(
+#     fileEncoding = "UTF-8",
+#     file = "anidb jugement comparatif/Combats menes.csv",
+#     append = F,
+#     quote = F,
+#     sep = "|",
+#     row.names = F,
+#     col.names = T
+#   )
+
+output %>%
+  top_n(n = 10, wt = se.theta) %>% droplevels() %>%
+  pull(Player) %>%
+  levels() %>%
+  set_names() %>%
+  map(.f = NEIGHBOUR, Voisinage = Voisinage) %>%
+  bind_rows(.id = "Ref") %>% split(f = .$Ref) %>%
+  map(ToGraph) %>%
+  map(SELECT) %>%
+  rbindlist() %>%
+  ToGraph() %>% simplify(remove.multiple = T, remove.loops = T) %>%
+  Graph_To_Table() %>%
+  BATTLE()
+
+data = data$Table %>% Get_results()
