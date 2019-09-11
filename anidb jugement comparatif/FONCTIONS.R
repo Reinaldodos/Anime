@@ -327,6 +327,15 @@ SELECT <- function(graphe) {
   }
   return(Selection)
 }
+
+SELECT2 <- function(graphe) {
+  Selection =
+    graphe %>%
+    Graph_To_Table()
+
+  return(Selection)
+}
+
 SCRIPT2 <- function(url) {
   Table = LIST(url)
   input = Table %>% Get_results()
