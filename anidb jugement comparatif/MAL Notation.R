@@ -43,7 +43,7 @@ repeat {
 
   if (nrow(Newbies) == 1) {
     Newbies %>%
-      tidyr::crossing(data$Table$Player) %>%
+      tidyr::crossing(Player1=data$Table$Player) %>%
       select(An1 = Player, An2 = Player1) %>% split(f = .$An1) %>%
       map(ToGraph) %>%
       map(SELECT) %>%
@@ -74,7 +74,7 @@ repeat {
     map(ToGraph) %>%
     map(SELECT2) %>% rbindlist()
 
-  if (nrow(Batch) < 20) {
+  if (nrow(Batch) <= 25) {
     Batch %>% BATTLE()
   } else {
     source("anidb jugement comparatif/Premiers combats.R", encoding = "UTF-8")
