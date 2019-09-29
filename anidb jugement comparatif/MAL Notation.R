@@ -21,7 +21,8 @@ Reseau =
   select(-Recs) %>%
   ToGraph()
 
-repeat {
+Newbies = data.table(test = "test")
+while(nrow(Newbies) > 0) {
   # Newbies -----------------------------------------------------------------
   Newbies =
     data$Results %>% select(An1, An2) %>%
@@ -43,7 +44,7 @@ repeat {
 
   if (nrow(Newbies) == 1) {
     Newbies %>%
-      tidyr::crossing(Player1=data$Table$Player) %>%
+      tidyr::crossing(Player1 = data$Table$Player) %>%
       select(An1 = Player, An2 = Player1) %>% split(f = .$An1) %>%
       map(ToGraph) %>%
       map(SELECT) %>%
@@ -52,7 +53,10 @@ repeat {
       Graph_To_Table() %>%
       BATTLE()
   }
+  data = data$Table %>% Get_results()
+}
 
+repeat {
   # Adaptive Comparative Judgement ------------------------------------------
   data = data$Table %>% Get_results()
   output = ELO(Table = data$Table, Results = data$Results)
@@ -65,19 +69,20 @@ repeat {
 
   Batch =
     output %>%
-    top_n(n = 1, wt = se.theta) %>% droplevels() %>%
-    pull(Player) %>%
-    levels() %>%
-    set_names() %>%
-    map(.f = NEIGHBOUR, Voisinage = Voisinage) %>%
-    bind_rows(.id = "Ref") %>% split(f = .$Ref) %>%
-    map(ToGraph) %>%
-    map(SELECT2) %>% rbindlist()
-
-  if (nrow(Batch) <= 25) {
-    Batch %>% BATTLE()
+    top_n(n = 1, wt = se.theta) %>% droplevels()
+  if (Batch$se.theta <= 2) {
+    Batch %>%
+      pull(Player) %>%
+      levels() %>%
+      set_names() %>%
+      map(.f = NEIGHBOUR, Voisinage = Voisinage) %>%
+      bind_rows(.id = "Ref") %>% split(f = .$Ref) %>%
+      map(ToGraph) %>%
+      map(SELECT2) %>%
+      rbindlist() %>% BATTLE()
   } else {
-    source("anidb jugement comparatif/Premiers combats.R", encoding = "UTF-8")
+    source("anidb jugement comparatif/Premiers combats.R",
+           encoding = "UTF-8")
   }
 
   source("anidb jugement comparatif/Score final.R")
