@@ -53,7 +53,7 @@ non_fit =
 #   )
 
 output %>%
-  top_n(n = 1, wt = se.theta) %>% droplevels() %>%
+  filter(se.theta > 2) %>% droplevels() %>%
   pull(Player) %>%
   levels() %>%
   set_names() %>%
