@@ -51,7 +51,9 @@ output =
 
 Sequels = output %>% filter(Sequel)
 
-Sequels %>% pull(Title) %>% write.table(file =  "Season watch/Season sequels.csv", row.names = F, quote = F)
+Sequels %>% pull(Title) %>%
+  write.table(file =  "Season watch/Season sequels.csv", row.names = F, quote = F)
+
 Sequels = "Season watch/Season sequels.csv" %>% readLines()
 
 output =

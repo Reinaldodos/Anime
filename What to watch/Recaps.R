@@ -14,7 +14,7 @@ Dropped =
   # .[c(1, 4)] %>%
   map(read_html)
 
-Dropped =Dropped %>%
+Dropped = Dropped %>%
   map(.f = ~ html_nodes(x = ., css = ".animetitle"))
 
 Select = (Dropped %>% map(html_text) %>% map(trimws) %>% unlist()) %in% Selection
