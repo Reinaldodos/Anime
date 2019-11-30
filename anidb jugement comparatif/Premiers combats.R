@@ -6,7 +6,7 @@ choix =
 
 if (nrow(choix) > 1) {
   choix %>%
-    tidyr::crossing(Voisinage) %>%
+    tidyr::crossing(Voisinage %>% rename(Player1=Player)) %>%
     group_by(Player) %>%
     filter(MIN == min(MIN)) %>% ungroup %>%
     select(contains("Player")) %>%
@@ -23,7 +23,7 @@ choix =
 
 if (nrow(choix) > 1) {
   choix %>%
-    tidyr::crossing(Voisinage) %>%
+    tidyr::crossing(Voisinage %>% rename(Player1=Player)) %>%
     group_by(Player) %>%
     filter(MAX == max(MAX)) %>% ungroup %>%
     select(contains("Player")) %>%

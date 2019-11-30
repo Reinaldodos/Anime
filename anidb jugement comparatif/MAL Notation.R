@@ -32,7 +32,7 @@ while(nrow(Newbies) > 0) {
 
   if (nrow(Newbies) > 1) {
     Newbies %>%
-      tidyr::crossing(Newbies) %>%
+      tidyr::crossing(Player1=Newbies$Player) %>%
       select(An1 = Player, An2 = Player1) %>% split(f = .$An1) %>%
       map(ToGraph) %>%
       map(SELECT) %>%

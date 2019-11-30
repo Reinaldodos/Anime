@@ -4,7 +4,8 @@ input = Table %>% Get_results()
 Table = ELO(Table = input$Table, Results = input$Results)
 
 Combats =
-  tidyr::crossing(Table, Table) %>%
+  Table %>% select(Player, Rating) %>%
+  tidyr::expand_grid(Table %>% select(Player1 = Player, Rating1 = Rating))%>%
   inner_join(x = LISTER(Table),
              by = c("An1" = "Player", "An2" = "Player1")) %>%
   mutate(PREV = case_when(Rating > Rating1 ~ 1,
@@ -34,12 +35,4 @@ SELECAO %>% select(AN1, AN2, Score) %>%
     fileEncoding = "UTF-8"
   )
 
-NEWBIES(input = Table %>% Get_results())
 
-
-# Premiers combats --------------------------------------------------------
-
-source(file = "anidb jugement comparatif/Premiers combats.R")
-while (length(Premiers_combats) > 0) {
-  source(file = "anidb jugement comparatif/Premiers combats.R")
-}
