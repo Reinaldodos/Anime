@@ -29,7 +29,10 @@ Liste =
 # Modelization ------------------------------------------------------------
 Torrents =
   c(
-    "Gaiden"
+    "Slime",
+    "Chihaya",
+    "Psycho",
+    "Kono"
   )
 
 Liste =
