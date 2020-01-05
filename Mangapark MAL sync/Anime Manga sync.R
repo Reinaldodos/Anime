@@ -41,3 +41,10 @@ Manga_desuka = Manga_Selection %>% map(.f = Manga_ka) %>% compact() %>%
   names
 
 Manga_desuka %>% cat(sep = "\n")
+Manga_desuka %>%
+  write.table(
+    file =  "Mangapark MAL sync/Mangas a copier.txt",
+    quote = F,
+    col.names = F,
+    row.names = F
+  )
