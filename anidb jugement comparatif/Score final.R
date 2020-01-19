@@ -1,6 +1,6 @@
 FINAL =
   output %>%
-  SCORE_FINAL(STYLE = "sd") %>%
+  SCORE_FINAL(STYLE = "sd", N = 10) %>%
   select(Player, Apres = Note) %>%
   left_join(x = data$Table) %>%
   select(Player, Apres, Avant = Rating) %>%

@@ -4,9 +4,9 @@ input = Table %>% Get_results()
 Table = ELO(Table = input$Table, Results = input$Results)
 
 Combats =
-  tidyr::crossing(Table %>% select(Player, Rating),
-                  Table %>% select(Player, Rating)) %>%
-  # tidyr::expand_grid(Table %>% select(Player1 = Player, Rating1 = Rating))%>%
+  Table %>% select(Player, Rating) %>%
+  # tidyr::crossing(Table %>% select(Player, Rating)) %>%
+  tidyr::expand_grid(Table %>% select(Player1 = Player, Rating1 = Rating))%>%
   inner_join(x = LISTER(Table),
              by = c("An1" = "Player", "An2" = "Player1")) %>%
   mutate(PREV = case_when(Rating > Rating1 ~ 1,

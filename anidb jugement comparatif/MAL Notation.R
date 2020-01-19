@@ -22,6 +22,7 @@ Reseau =
   ToGraph()
 
 Newbies = data.table(test = "test")
+
 while(nrow(Newbies) > 0) {
   # Newbies -----------------------------------------------------------------
   Newbies =
@@ -29,6 +30,17 @@ while(nrow(Newbies) > 0) {
     as.list() %>% flatten_chr() %>% data.table(Player = .) %>%
     count(Player) %>%
     anti_join(x = data$Table %>% distinct(Player), by = "Player")
+
+  Newbies_Franchise =
+  tidyr::crossing(Ref=Newbies$Player,
+                Player=data$Table$Player) %>%
+  ToGraph() %>%
+  igraph::intersection(Franchise) %>%
+  Graph_To_Table()
+
+  if(nrow(Newbies_Franchise)>0){
+    Newbies_Franchise %>% BATTLE()
+  }
 
   if (nrow(Newbies) > 1) {
     Newbies %>%
@@ -70,20 +82,13 @@ repeat {
   Batch =
     output %>%
     top_n(n = 1, wt = se.theta) %>% droplevels()
-  if (Batch$se.theta <= 2) {
-    Batch %>%
-      pull(Player) %>%
-      levels() %>%
-      set_names() %>%
-      map(.f = NEIGHBOUR, Voisinage = Voisinage) %>%
-      bind_rows(.id = "Ref") %>% split(f = .$Ref) %>%
-      map(ToGraph) %>%
-      map(SELECT2) %>%
-      rbindlist() %>% BATTLE()
-  } else {
-    source("anidb jugement comparatif/Premiers combats.R",
-           encoding = "UTF-8")
-  }
+
+  Batch %>% split(f = .$Player) %>%
+    map(.f = NEIGHBOUR, output = output) %>%
+    bind_rows() %>% split(f = .$Candidat) %>%
+    map(ToGraph) %>%
+    map(SELECT2) %>%
+    rbindlist() %>% BATTLE()
 
   source("anidb jugement comparatif/Score final.R")
 

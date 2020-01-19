@@ -226,16 +226,20 @@ LISTER <- function(Table) {
     Draw = Coupe[!condition]
   }
   return(Draw)
-  # return(Draw[1:min(nrow(Table), nrow(Draw))])
 }
-NEIGHBOUR <- function(Voisinage, ref) {
-  Reference = Voisinage %>% filter(Player == ref) %>% as.list()
 
-  Voisinage %>%
-    filter(MAX > Reference$MIN,
-           MIN < Reference$MAX) %>%
-    distinct(Player) %>% droplevels() %>%
-    return()
+NEIGHBOUR <- function(Batch, output) {
+    Batch %>%
+      select(Candidat = Player, Ref = Rating) %>%
+      cbind.data.frame(output %>% select(Player, Rating)) %>%
+      mutate_if(.predicate = is.factor, .funs = as.character) %>%
+      filter(Candidat!=Player) %>%
+      mutate(Gap=Ref-Rating) %>%
+      split(f = .$Gap>0) %>%
+      map(.f = top_n, n = -1, wt = abs(Gap)) %>%
+      bind_rows() %>%
+      distinct(Candidat, Player) %>%
+      return()
 }
 New_Round = function(Sous_Liste) {
   Sous_Liste =
