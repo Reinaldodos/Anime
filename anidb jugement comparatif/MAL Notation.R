@@ -21,6 +21,8 @@ Reseau =
   select(-Recs) %>%
   ToGraph()
 
+source(file = "anidb jugement comparatif/Full franchises.R")
+
 Newbies = data.table(test = "test")
 
 while(nrow(Newbies) > 0) {
