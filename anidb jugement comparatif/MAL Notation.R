@@ -33,12 +33,15 @@ while(nrow(Newbies) > 0) {
     count(Player) %>%
     anti_join(x = data$Table %>% distinct(Player), by = "Player")
 
+  if(nrow(Newbies)>0){
   Newbies_Franchise =
   tidyr::crossing(Ref=Newbies$Player,
                 Player=data$Table$Player) %>%
   ToGraph() %>%
   igraph::intersection(Franchise) %>%
-  Graph_To_Table()
+  Graph_To_Table()} else{
+    Newbies_Franchise=Newbies
+  }
 
   if(nrow(Newbies_Franchise)>0){
     Newbies_Franchise %>% BATTLE()

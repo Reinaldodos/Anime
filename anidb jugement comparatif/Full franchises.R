@@ -3,7 +3,8 @@ Results =
   simplify(remove.multiple = T, remove.loops = T)
 
 Franchise=
-  expand_grid(Player=data$Table$Player, Ref = data$Table$Player) %>%
+  tidyr::crossing(Player=data$Table$Player, Ref = data$Table$Player) %>%
+  # expand_grid(Player=data$Table$Player, Ref = data$Table$Player) %>%
   ToGraph() %>%
   intersection(Franchise)
 

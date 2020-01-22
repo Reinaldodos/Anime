@@ -1,3 +1,7 @@
+Table = LIST(url)
+input = Table %>% Get_results()
+output = ELO(Table = input$Table, Results = input$Results)
+
 FINAL =
   output %>%
   SCORE_FINAL(STYLE = "sd", N = 10) %>%
