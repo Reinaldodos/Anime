@@ -98,3 +98,5 @@ repeat {
   source("anidb jugement comparatif/Score final.R")
 
 }
+
+source("anidb jugement comparatif/Purger les combats.R")
