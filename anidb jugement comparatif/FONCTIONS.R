@@ -137,6 +137,7 @@ COMPARAISON <- function(Scores, SEUIL, Table) {
   return(Rank)
 }
 ELO <- function(Table, Results) {
+  pacman::p_load(sirt)
   mod1 =
     Results %>%
     data.table() %>%
