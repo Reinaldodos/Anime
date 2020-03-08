@@ -4,8 +4,8 @@ source(file = "What to watch/Fonctions.R", encoding = "UTF-8")
 Pages =
   list(
     # Planned = "https://myanimelist.net/animelist/Altermedia?status=7&tag=",
-    # OnHold = "https://myanimelist.net/animelist/Altermedia?status=3&tag=",
-    # Dropped = "https://myanimelist.net/animelist/Altermedia?status=4&tag="
+    OnHold = "https://myanimelist.net/animelist/Altermedia?status=3&tag=",
+    Dropped = "https://myanimelist.net/animelist/Altermedia?status=4&tag=",
     Watching = "https://myanimelist.net/animelist/Altermedia?status=1&tag="
        )
 
