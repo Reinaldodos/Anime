@@ -31,9 +31,15 @@ Manga_ka <- function(url) {
     return(Manga_desuka)
 }
 
+safe_read = function(url) {
+  print(url)
+  RIDE = safely(.f = read_html, quiet = FALSE)
+  Sys.sleep(time = 1)
+  return(RIDE(url))
+}
+
 SAFE_FETCH <- function(input) {
   pacman::p_load(rvest, purrr)
-  safe_read = safely(.f = read_html, quiet = FALSE)
   input = input %>% set_names %>% map(safe_read)
 
   output = input %>% purrr::transpose() %>% map(compact)
