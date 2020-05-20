@@ -11,7 +11,7 @@ MAL_names = MAList %>% html_text() %>% map_chr(trimws)
 
 MAL_url = MAList %>% html_attr(name = "href") %>% str_c("https://myanimelist.net", .)
 
-output = SAFE_FETCH(input = MAL_url)
+output = MAL_url %>% sort %>% SAFE_FETCH()
 
 # Franchises --------------------------------------------------------------
 
@@ -31,7 +31,7 @@ Recs =
   compact() %>%
   map(data.table) %>% bind_rows(.id = "url") %>% rename(url_recs = V1)
 
-url_recs = Recs$url_recs %>% SAFE_FETCH()
+url_recs = Recs$url_recs %>% sort %>% SAFE_FETCH()
 
 Recs =
   url_recs %>% map(FETCH_Recs) %>% bind_rows(.id = "url_recs") %>%
