@@ -242,6 +242,7 @@ NEIGHBOUR <- function(Batch, output) {
       distinct(Candidat, Player) %>%
       return()
 }
+
 New_Round = function(Sous_Liste) {
   Sous_Liste =
     Sous_Liste %>%

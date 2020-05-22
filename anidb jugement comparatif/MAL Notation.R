@@ -14,12 +14,11 @@ Reseau = anti_join(x = Reseau, y = Franchise)
 Franchise =
   Franchise %>% filter(Title != "") %>%
   select(-Recs) %>%
-  ToGraph()
+  tidygraph::as_tbl_graph(directed = F)
 
 Reseau =
   Reseau %>%
-  select(-Recs) %>%
-  ToGraph()
+  tidygraph::as_tbl_graph(directed = F)
 
 source(file = "anidb jugement comparatif/Full franchises.R")
 
