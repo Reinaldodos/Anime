@@ -1,18 +1,20 @@
 
+
 FINAL =
   output %>%
   SCORE_FINAL(STYLE = "sd", N = 10) %>%
-  select(Player, Apres = Note) %>%
+  transmute(Player, Apres = ceiling(Note / 1)) %>%
   left_join(x = data$Table) %>%
-  select(Player, Apres, Avant = Rating) %>%
-  mutate(Apres = case_when(Apres > 10 ~ 10,
-                           TRUE ~ as.double(Apres)))
+  select(Player, Apres, Avant = Rating)
 
 FINAL %>%
-  filter(Apres != Avant) %>% view()
+  filter(Avant == 10, Apres > 10) %>%
+  anti_join(x = FINAL, by = "Player") %>%
+  filter(Apres != Avant) %>%
+  view()
 
 FINAL %>%
-  gather(key = QUAND, value = COMBIEN, -Player) %>%
+  gather(key = QUAND, value = COMBIEN,-Player) %>%
   ggplot(mapping = aes(x = COMBIEN, fill = QUAND)) +
   geom_histogram(position = "dodge")
 
@@ -23,7 +25,6 @@ FINAL %>%
   geom_abline()
 
 FINAL %>%
-  gather(key = QUAND, value = COMBIEN, -Player) %>%
-  group_by(QUAND) %>%
-  summarise(M = mean(COMBIEN, na.rm = T),
-            SD = sd(COMBIEN, na.rm = T))
+  select_if(is.numeric) %>%
+  psych::describe() %>%
+  print()

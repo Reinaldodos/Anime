@@ -230,18 +230,40 @@ LISTER <- function(Table) {
 }
 
 NEIGHBOUR <- function(Batch, output) {
-    Batch %>%
-      select(Candidat = Player, Ref = Rating) %>%
-      cbind.data.frame(output %>% select(Player, Rating)) %>%
-      mutate_if(.predicate = is.factor, .funs = as.character) %>%
-      filter(Candidat!=Player) %>%
-      mutate(Gap=Ref-Rating) %>%
-      split(f = .$Gap>0) %>%
-      map(.f = top_n, n = -1, wt = abs(Gap)) %>%
-      bind_rows() %>%
-      distinct(Candidat, Player) %>%
-      return()
+  test =
+    output %>%
+    transmute(
+      Player,
+      high = qnorm(p = .75) * se.theta + Rating,
+      low = qnorm(p = .25) * se.theta + Rating
+    )
+
+  Candidat =
+    semi_join(x = test, y = Batch, by = "Player") %>% as.list()
+
+  test %>%
+    filter(
+      between(x = high, lower = Candidat$low, upper = Candidat$high)|
+        between(x = low, lower = Candidat$low, upper = Candidat$high)
+    ) %>% data.table() %>%
+    sample_n(size = 1) %>%
+    transmute(Candidat=as.character(Candidat$Player), Player) %>%
+    return()
 }
+
+# NEIGHBOUR <- function(Batch, output) {
+#     Batch %>%
+#       select(Candidat = Player, Ref = Rating) %>%
+#       cbind.data.frame(output %>% select(Player, Rating)) %>%
+#       mutate_if(.predicate = is.factor, .funs = as.character) %>%
+#       filter(Candidat!=Player) %>%
+#       mutate(Gap=Ref-Rating) %>%
+#       split(f = .$Gap>0) %>%
+#       map(.f = top_n, n = -1, wt = abs(Gap)) %>%
+#       bind_rows() %>%
+#       distinct(Candidat, Player) %>%
+#       return()
+# }
 
 New_Round = function(Sous_Liste) {
   Sous_Liste =

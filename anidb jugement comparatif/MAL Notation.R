@@ -1,4 +1,3 @@
-
 pacman::p_load(tidyverse, rio, data.table)
 source("anidb jugement comparatif/FONCTIONS.R", encoding = "UTF-8")
 
@@ -24,7 +23,7 @@ source(file = "anidb jugement comparatif/Full franchises.R")
 
 Newbies = data.table(test = "test")
 
-while(nrow(Newbies) > 0) {
+while (nrow(Newbies) > 0) {
   # Newbies -----------------------------------------------------------------
   Newbies =
     data$Results %>% select(An1, An2) %>%
@@ -32,23 +31,24 @@ while(nrow(Newbies) > 0) {
     count(Player) %>%
     anti_join(x = data$Table %>% distinct(Player), by = "Player")
 
-  if(nrow(Newbies)>0){
-  Newbies_Franchise =
-  tidyr::crossing(Ref=Newbies$Player,
-                Player=data$Table$Player) %>%
-  ToGraph() %>%
-  igraph::intersection(Franchise) %>%
-  Graph_To_Table()} else{
-    Newbies_Franchise=Newbies
+  if (nrow(Newbies) > 0) {
+    Newbies_Franchise =
+      tidyr::crossing(Ref = Newbies$Player,
+                      Player = data$Table$Player) %>%
+      ToGraph() %>%
+      igraph::intersection(Franchise) %>%
+      Graph_To_Table()
+  } else{
+    Newbies_Franchise = Newbies
   }
 
-  if(nrow(Newbies_Franchise)>0){
+  if (nrow(Newbies_Franchise) > 0) {
     Newbies_Franchise %>% BATTLE()
   }
 
   if (nrow(Newbies) > 1) {
     Newbies %>%
-      tidyr::crossing(Player1=Newbies$Player) %>%
+      tidyr::crossing(Player1 = Newbies$Player) %>%
       select(An1 = Player, An2 = Player1) %>% split(f = .$An1) %>%
       map(ToGraph) %>%
       map(SELECT) %>%
@@ -79,13 +79,18 @@ repeat {
 
   Voisinage =
     output %>%
-    group_by(Player) %>%
-    summarise(MIN = Rating - se.theta,
-              MAX = Rating + se.theta)
+    transmute(
+      Player,
+      high = qnorm(p = .95) * se.theta + Rating,
+      low = qnorm(p = .05) * se.theta + Rating
+    )
 
   Batch =
     output %>%
-    top_n(n = 1, wt = se.theta) %>% droplevels()
+    top_n(n = 10,
+          wt = se.theta) %>% droplevels()
+
+  source("anidb jugement comparatif/Score final.R")
 
   Batch %>% split(f = .$Player) %>%
     map(.f = NEIGHBOUR, output = output) %>%
@@ -94,7 +99,6 @@ repeat {
     map(SELECT2) %>%
     rbindlist() %>% BATTLE()
 
-  source("anidb jugement comparatif/Score final.R")
 
 }
 
