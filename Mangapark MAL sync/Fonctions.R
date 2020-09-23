@@ -34,7 +34,7 @@ Manga_ka <- function(url) {
 safe_read = function(url) {
   print(url)
   RIDE = safely(.f = read_html, quiet = FALSE)
-  Sys.sleep(time = 1)
+  Sys.sleep(time = 2)
   return(RIDE(url))
 }
 
@@ -46,6 +46,7 @@ SAFE_FETCH <- function(input) {
   input = output$result
 
   while (length(output$error)) {
+    Sys.sleep(time = 600)
     output$error %>% length %>% str_c(., " errors left") %>% cat(sep = "\n")
     output =
       output$error %>% names %>% set_names() %>% map(safe_read) %>%
