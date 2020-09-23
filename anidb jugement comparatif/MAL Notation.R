@@ -77,14 +77,6 @@ repeat {
   data = data$Table %>% Get_results()
   output = ELO(Table = data$Table, Results = data$Results)
 
-  Voisinage =
-    output %>%
-    transmute(
-      Player,
-      high = qnorm(p = .95) * se.theta + Rating,
-      low = qnorm(p = .05) * se.theta + Rating
-    )
-
   Batch =
     output %>%
     top_n(n = 10,

@@ -230,12 +230,13 @@ LISTER <- function(Table) {
 }
 
 NEIGHBOUR <- function(Batch, output) {
+  require(data.table)
   test =
     output %>%
     transmute(
       Player,
-      high = qnorm(p = .75) * se.theta + Rating,
-      low = qnorm(p = .25) * se.theta + Rating
+      high = qnorm(p = .95) * se.theta + Rating,
+      low = qnorm(p = .05) * se.theta + Rating
     )
 
   Candidat =
