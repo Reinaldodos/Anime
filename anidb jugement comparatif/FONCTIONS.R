@@ -230,22 +230,21 @@ LISTER <- function(Table) {
 }
 
 NEIGHBOUR <- function(Batch, output) {
-  require(data.table)
   test =
     output %>%
     transmute(
       Player,
-      high = qnorm(p = .95) * se.theta + Rating,
-      low = qnorm(p = .05) * se.theta + Rating
+      high = qnorm(p = .75) * se.theta + Rating,
+      low = qnorm(p = .25) * se.theta + Rating
     )
 
   Candidat =
     semi_join(x = test, y = Batch, by = "Player") %>% as.list()
 
   test %>%
-    filter(
-      between(x = high, lower = Candidat$low, upper = Candidat$high)|
-        between(x = low, lower = Candidat$low, upper = Candidat$high)
+    dplyr::filter(
+      (high>=Candidat$low&high<=Candidat$high)|
+        (low<=Candidat$low&low>=Candidat$high)
     ) %>% data.table() %>%
     sample_n(size = 1) %>%
     transmute(Candidat=as.character(Candidat$Player), Player) %>%

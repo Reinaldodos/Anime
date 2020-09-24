@@ -3,29 +3,18 @@ Table = LIST(url)
 input = Table %>% Get_results()
 Table = ELO(Table = input$Table, Results = input$Results)
 
-Combats =
-  Table %>% select(Player, Rating) %>%
-  # tidyr::crossing(Table %>% select(Player, Rating)) %>%
-  tidyr::expand_grid(Table %>% select(Player1 = Player, Rating1 = Rating))%>%
-  inner_join(x = LISTER(Table),
-             by = c("An1" = "Player", "An2" = "Player1")) %>%
-  mutate(PREV = case_when(Rating > Rating1 ~ 1,
-                          Rating1 > Rating ~ 2))
 
 # Exclusion des combats incohérents ---------------------------------------
-SELECAO =
-  input$Results %>%
-  inner_join(y = Combats, by = c("An1", "An2"))  %>%
-  filter(Score == PREV) %>% unique()
+OUT =
+  Table %>% drop_na() %>%
+  anti_join(x= Table) %>%
+  pull(Player) %>% as.character()
 
-"A exclure: " %>% cat(sep = "\n")
-anti_join(x = input$Results,
-          y = SELECAO,
-          by = c("An1", "An2", "Score")) %>%
-  select(An1, An2, Score) %>%
-  print
-
-SELECAO %>% select(AN1, AN2, Score) %>%
+input$Results %>%
+  filter(An1 %in% OUT |
+           An2 %in% OUT) %>%
+  anti_join(x= input$Results) %>%
+  select(AN1, AN2, Score) %>%
   write.table(
     file = "anidb jugement comparatif/Combats menes.csv",
     append = F,
