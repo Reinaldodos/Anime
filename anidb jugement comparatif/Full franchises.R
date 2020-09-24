@@ -11,3 +11,5 @@ Franchise=
 Franchise %>% igraph::difference(Results) %>%
   Graph_To_Table() %>%
   BATTLE()
+
+data = url %>% LIST() %>% Get_results()
