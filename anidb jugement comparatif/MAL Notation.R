@@ -86,9 +86,9 @@ repeat {
   output = ELO(Table = data$Table, Results = data$Results)
   output %>% arrange(-se.theta) %>% view()
 
-  # source("anidb jugement comparatif/Score final.R")
   source("anidb jugement comparatif/Nouvelles batailles.R")
 
 }
 
+source("anidb jugement comparatif/Score final.R")
 # source("anidb jugement comparatif/Purger les combats.R")
