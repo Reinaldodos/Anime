@@ -15,11 +15,14 @@ input =
 
 Liste = input %>% filter(Judge == "Feuil1") %>% unnest() %>% pull(Title)
 
+test = input %>% split(f = .$Judge) %>% sample(1) %>% flatten_df()
+
 JUDGING <- function(test) {
-  test %>% select(Title, Vote) %>%
-    mutate(id = dense_rank(Title)) %>%
-    tidyr::crossing(., .) %>%
-    filter(id < id1) %>%
+    tidyr::crossing(
+      test %>% transmute(id = dense_rank(Title), Title,  Vote),
+      test %>% transmute(id1 = dense_rank(Title), Title1=Title,Vote1 = Vote)
+      ) %>%
+    filter(id < id1) %>% drop_na() %>%
     mutate(Score = case_when(Vote > Vote1 ~ 1,
                              Vote < Vote1 ~ 0,
                              Vote == Vote1 ~ .5)) %>%
@@ -28,12 +31,13 @@ JUDGING <- function(test) {
 }
 
 input =
-  input %>%
-  group_by(Judge) %>% nest %>%
+  input %>% select(Judge, Title, Vote) %>% drop_na() %>%
+  group_by(Judge) %>% nest() %>%
   mutate(Jugements = map(.x = data, .f = JUDGING))
 
-output = input %>% select(Judge, Jugements) %>% unnest() %>%
-  filter(!is.na(Score))
+output =
+  input %>% select(Judge, Jugements) %>% unnest() %>%
+  drop_na(Score) %>% ungroup()
 
 Selection =
   tidyr::crossing(Player = Liste, Player1 = Liste) %>%
