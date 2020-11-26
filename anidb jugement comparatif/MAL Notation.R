@@ -5,19 +5,27 @@ source("anidb jugement comparatif/FONCTIONS.R", encoding = "UTF-8")
 url = "http://graph.anime.plus/Altermedia/list,anime"
 data = url %>% LIST() %>% Get_results()
 # récupérer les relations
-Reseau = "anidb jugement comparatif/Reseau" %>% read_rds()
+Reseau =
+  "anidb jugement comparatif/Reseau" %>% read_rds() %>%
+  filter(Ref%in%data$Table$Player) %>%
+  filter(Title %in% Ref)
+
 Franchise = Reseau %>% filter(Recs == max(Recs))
 Reseau = anti_join(x = Reseau, y = Franchise)
 
 # graphisation
 Franchise =
   Franchise %>% filter(Title != "") %>%
-  select(-Recs) %>%
-  tidygraph::as_tbl_graph(directed = F)
+  tidygraph::as_tbl_graph(directed = F)%>%
+  igraph::simplify(remove.multiple = T, remove.loops = T)
 
 Reseau =
   Reseau %>%
-  tidygraph::as_tbl_graph(directed = F)
+  tidygraph::as_tbl_graph(directed = F)%>%
+  igraph::simplify(remove.multiple = T, remove.loops = T)
+
+Reseaux = igraph::union(Franchise, Reseau) %>%
+  igraph::simplify(remove.multiple = T, remove.loops = T)
 
 source(file = "anidb jugement comparatif/Full franchises.R")
 
@@ -36,7 +44,7 @@ while (nrow(Newbies) > 0) {
       tidyr::crossing(Ref = Newbies$Player,
                       Player = data$Table$Player) %>%
       ToGraph() %>%
-      igraph::intersection(Franchise) %>%
+      igraph::intersection(Reseaux) %>%
       Graph_To_Table()
   } else{
     Newbies_Franchise = Newbies
@@ -76,22 +84,11 @@ repeat {
   # Adaptive Comparative Judgement ------------------------------------------
   data = data$Table %>% Get_results()
   output = ELO(Table = data$Table, Results = data$Results)
+  output %>% arrange(-se.theta) %>% view()
 
-  Batch =
-    output %>%
-    top_n(n = 10,
-          wt = se.theta) %>% droplevels()
-
-  source("anidb jugement comparatif/Score final.R")
-
-  Batch %>% split(f = .$Player) %>%
-    map(.f = NEIGHBOUR, output = output) %>%
-    bind_rows() %>% split(f = .$Candidat) %>%
-    map(ToGraph) %>%
-    map(SELECT2) %>%
-    rbindlist() %>% BATTLE()
-
+  # source("anidb jugement comparatif/Score final.R")
+  source("anidb jugement comparatif/Nouvelles batailles.R")
 
 }
 
-source("anidb jugement comparatif/Purger les combats.R")
+# source("anidb jugement comparatif/Purger les combats.R")
