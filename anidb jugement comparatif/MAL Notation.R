@@ -7,8 +7,7 @@ data = url %>% LIST() %>% Get_results()
 # récupérer les relations
 Reseau =
   "anidb jugement comparatif/Reseau" %>% read_rds() %>%
-  filter(Ref%in%data$Table$Player) %>%
-  filter(Title %in% Ref)
+  filter(Ref%in%data$Table$Player)
 
 Franchise = Reseau %>% filter(Recs == max(Recs))
 Reseau = anti_join(x = Reseau, y = Franchise)
@@ -24,7 +23,8 @@ Reseau =
   tidygraph::as_tbl_graph(directed = F)%>%
   igraph::simplify(remove.multiple = T, remove.loops = T)
 
-Reseaux = igraph::union(Franchise, Reseau) %>%
+Reseaux =
+  igraph::union(Franchise, Reseau) %>%
   igraph::simplify(remove.multiple = T, remove.loops = T)
 
 source(file = "anidb jugement comparatif/Full franchises.R")
