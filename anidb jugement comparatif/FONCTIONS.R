@@ -230,12 +230,13 @@ LISTER <- function(Table) {
 }
 
 NEIGHBOUR <- function(Batch, output) {
+  Bornes = 0.25
   test =
     output %>%
     transmute(
       Player,
-      high = qnorm(p = .75) * se.theta + Rating,
-      low = qnorm(p = .25) * se.theta + Rating
+      high = qnorm(p = .5 + Bornes) * se.theta + Rating,
+      low = qnorm(p = .5 - Bornes) * se.theta + Rating
     )
 
   Candidat =
@@ -243,8 +244,9 @@ NEIGHBOUR <- function(Batch, output) {
 
   test %>%
     dplyr::filter(
-      (high>=Candidat$low&high<=Candidat$high)|
-        (low<=Candidat$low&low>=Candidat$high)
+      data.table::between(x = low, lower = Candidat$low, upper = Candidat$high)|
+        data.table::between(x = high, lower = Candidat$low, upper = Candidat$high),
+      Player!=as.character(Candidat$Player)
     ) %>% data.table() %>%
     sample_n(size = 1) %>%
     transmute(Candidat=as.character(Candidat$Player), Player) %>%
