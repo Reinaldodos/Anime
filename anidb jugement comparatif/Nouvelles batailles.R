@@ -15,7 +15,8 @@ Battlerezo =
 
 if(nrow(Battlerezo)==0) {
   Battlerezo =
-    Batch %>% NEIGHBOUR(output = output) %>%
+    Batch %>% split(f = .$Player) %>%
+    map(.f = NEIGHBOUR, output = output) %>% bind_rows() %>%
     ToGraph() %>% Graph_To_Table()
 }
 
