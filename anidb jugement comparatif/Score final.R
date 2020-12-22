@@ -1,8 +1,8 @@
 
 FINAL =
   output %>%
-  SCORE_FINAL(STYLE = "sd", N = 100) %>%
-  transmute(Player, Apres = ceiling(Note / 10)) %>%
+  SCORE_FINAL(STYLE = "jenks", N = 10) %>%
+  transmute(Player, Apres = ceiling(Note / 1)) %>%
   left_join(x = data$Table) %>%
   select(Player, Apres, Avant = Rating)
 
