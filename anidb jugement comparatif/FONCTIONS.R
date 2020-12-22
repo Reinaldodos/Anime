@@ -230,7 +230,7 @@ LISTER <- function(Table) {
 }
 
 NEIGHBOUR <- function(Batch, output) {
-  Bornes = 0.25
+  Bornes = 0.3
   test =
     output %>%
     transmute(
@@ -323,8 +323,8 @@ SCORE_FINAL <- function(TABLE, STYLE, N) {
 
   mutate(.data = TABLE,
            Groupe = cut(x = Rating,
-                                   breaks = Classes$brks,
-                                   include.lowest = T)) %>%
+                        breaks = Classes$brks,
+                        include.lowest = T)) %>%
           mutate(Note = dense_rank(Groupe)) %>%
     return()
 }
