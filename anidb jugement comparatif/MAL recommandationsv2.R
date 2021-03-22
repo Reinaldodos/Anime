@@ -21,6 +21,7 @@ Related =
   rename(Title = V1) %>%
   mutate(Recs = 999)
 
+saveRDS(object = Related, file = "anidb jugement comparatif/Related.rds")
 # Recommandations ---------------------------------------------------------
 Recs =
   output %>%
@@ -37,10 +38,16 @@ Recs =
   url_recs %>% map(FETCH_Recs) %>% bind_rows(.id = "url_recs") %>%
   inner_join(Recs, by = "url_recs")
 
+saveRDS(object = Related, file = "anidb jugement comparatif/Recommended.rds")
 
 # Wrapping up -------------------------------------------------------------
 
 FINAL =
+  list(
+    "anidb jugement comparatif/Related.rds",
+    "anidb jugement comparatif/Recommended.rds"
+  ) %>%
+  map(.f = read_rds) %>%
   bind_rows(Related, Recs) %>%
   inner_join(cbind.data.frame(url = MAL_url, Ref = MAL_names), by = "url") %>%
   select(Ref, Title, Recs)
