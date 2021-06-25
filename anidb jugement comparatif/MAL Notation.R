@@ -2,7 +2,7 @@ pacman::p_load(tidyverse, rio, data.table)
 source("anidb jugement comparatif/FONCTIONS.R", encoding = "UTF-8")
 
 # récupérer les données
-url = "http://graph.anime.plus/Altermedia/list,anime"
+url = "https://anime.plus/Altermedia/list,anime"
 data = url %>% LIST() %>% Get_results()
 # récupérer les relations
 Reseau =
