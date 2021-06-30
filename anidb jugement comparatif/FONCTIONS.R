@@ -322,8 +322,8 @@ SCORE_FINAL <- function(TABLE, STYLE, N) {
                            style = STYLE)
 
   mutate(.data = TABLE,
-           Groupe = cut(x = Rating,
-                        breaks = Classes$brks,
+         Groupe = cut(x = Rating,
+                        breaks = unique(Classes$brks),
                         include.lowest = T)) %>%
           mutate(Note = dense_rank(Groupe)) %>%
     return()
