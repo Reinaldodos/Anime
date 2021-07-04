@@ -66,17 +66,17 @@ while (nrow(Newbies) > 0) {
       BATTLE()
   }
 
-  # if (nrow(Newbies) == 1) {
-  #   Newbies %>%
-  #     tidyr::crossing(Player1 = data$Table$Player) %>%
-  #     select(An1 = Player, An2 = Player1) %>% split(f = .$An1) %>%
-  #     map(ToGraph) %>%
-  #     map(SELECT) %>%
-  #     rbindlist() %>%
-  #     ToGraph() %>% simplify(remove.multiple = T, remove.loops = T) %>%
-  #     Graph_To_Table() %>%
-  #     BATTLE()
-  # }
+  if (nrow(Newbies) == 1) {
+    Newbies %>%
+      tidyr::crossing(Player1 = data$Table$Player) %>%
+      select(An1 = Player, An2 = Player1) %>% split(f = .$An1) %>%
+      map(ToGraph) %>%
+      map(SELECT) %>%
+      rbindlist() %>%
+      ToGraph() %>% simplify(remove.multiple = T, remove.loops = T) %>%
+      Graph_To_Table() %>%
+      BATTLE()
+  }
   data = data$Table %>% Get_results()
 }
 
