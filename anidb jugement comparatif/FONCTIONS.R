@@ -171,7 +171,9 @@ Get_results <- function(Table) {
     inner_join(y = Table %>% select(AN1 = Base64, An1 = Player),
                by = "AN1") %>%
     inner_join(y = Table %>% select(AN2 = Base64, An2 = Player),
-               by = "AN2")
+               by = "AN2") %>%
+    mutate_at(.vars = "Score", .funs = as.numeric) %>%
+    drop_na(Score)
 
   list(Table = Table, Results = Results) %>%
     return()

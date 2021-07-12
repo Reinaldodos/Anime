@@ -90,5 +90,4 @@ repeat {
 
 }
 
-source("anidb jugement comparatif/Score final.R", echo = T)
-# source("anidb jugement comparatif/Purger les combats.R")
+source("anidb jugement comparatif/Purger les combats.R")

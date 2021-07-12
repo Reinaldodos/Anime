@@ -13,17 +13,15 @@ Battlerezo =
   intersection(Selection) %>%
   Graph_To_Table()
 
-if(nrow(Battlerezo)==0) {
+if (nrow(Battlerezo) == 0) {
   Battlerezo =
     Batch %>% split(f = .$Player) %>%
     map(.f = NEIGHBOUR, output = output) %>% bind_rows() %>%
     ToGraph() %>% Graph_To_Table()
 }
 
-if(nrow(Battlerezo)>0) {
+if (nrow(Battlerezo) > 0) {
   Battlerezo %>% BATTLE()
 } else {
   break
 }
-
-
