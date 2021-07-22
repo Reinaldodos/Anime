@@ -232,7 +232,7 @@ LISTER <- function(Table) {
 }
 
 NEIGHBOUR <- function(Batch, output) {
-  Bornes = 0.35
+  Bornes = 0.1
   test =
     output %>%
     transmute(
