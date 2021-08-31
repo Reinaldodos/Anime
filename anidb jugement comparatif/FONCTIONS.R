@@ -232,13 +232,14 @@ LISTER <- function(Table) {
 }
 
 NEIGHBOUR <- function(Batch, output) {
-  Bornes = 0.1
+  N = 10
+  Confidence = 1 - 1 / N
   test =
     output %>%
     transmute(
       Player,
-      high = qnorm(p = .5 + Bornes) * se.theta + Rating,
-      low = qnorm(p = .5 - Bornes) * se.theta + Rating
+      high = qnorm(p = Confidence) * se.theta + Rating,
+      low = qnorm(p = 1 - Confidence) * se.theta + Rating
     )
 
   Candidat =
