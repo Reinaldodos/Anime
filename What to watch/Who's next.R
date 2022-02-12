@@ -4,8 +4,8 @@ source(file = "What to watch/Fonctions.R", encoding = "UTF-8")
 Pages =
   list(
     # Planned = "https://myanimelist.net/animelist/Altermedia?status=7&tag=",
-    # OnHold = "https://myanimelist.net/animelist/Altermedia?status=3&tag=",
-    # Dropped = "https://myanimelist.net/animelist/Altermedia?status=4&tag="
+    OnHold = "https://myanimelist.net/animelist/Altermedia?status=3&tag=",
+    Dropped = "https://myanimelist.net/animelist/Altermedia?status=4&tag=",
     Watching = "https://myanimelist.net/animelist/Altermedia?status=1&tag="
        )
 
@@ -13,6 +13,13 @@ input =
   Pages %>%
   map(CLINNE) %>% bind_rows(.id = "Status") %>%
   mutate(Progress = Nb / Eps)
+
+input %>%
+  mutate(Stop = Eps/26*5) %>%
+  filter(Nb < Stop,
+         !is.na(as.numeric(Score))) %>%
+  mutate(Rest = ceiling(Stop)-Nb) %>%
+  arrange(Rest) %>% view()
 
 # Data pre-processing -----------------------------------------------------
 Liste =
