@@ -14,7 +14,7 @@ Reseau = anti_join(x = Reseau, y = Franchise)
 
 # graphisation
 Franchise =
-  Franchise %>% filter(Title != "") %>%
+  Franchise %>% filter(Title %in% data$Table$Player) %>%
   tidygraph::as_tbl_graph(directed = F)%>%
   igraph::simplify(remove.multiple = T, remove.loops = T)
 
@@ -86,7 +86,7 @@ repeat {
   output = ELO(Table = data$Table, Results = data$Results)
   output %>% arrange(-se.theta) %>% view()
 
-  source("anidb jugement comparatif/Nouvelles batailles.R")
+  tryCatch(source("anidb jugement comparatif/Nouvelles batailles.R"))
 
 }
 
