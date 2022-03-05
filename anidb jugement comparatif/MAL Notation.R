@@ -86,7 +86,9 @@ repeat {
   output = ELO(Table = data$Table, Results = data$Results)
   output %>% arrange(-se.theta) %>% view()
 
-  tryCatch(source("anidb jugement comparatif/Nouvelles batailles.R"))
+  test = try(source("anidb jugement comparatif/Nouvelles batailles.R"))
+  if (inherits(test, "try-error")) break
+  source("anidb jugement comparatif/Nouvelles batailles.R")
 
 }
 
