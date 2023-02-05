@@ -34,7 +34,7 @@ Manga_ka <- function(url) {
 safe_read = function(url) {
   print(url)
   RIDE = safely(.f = read_html, quiet = FALSE)
-  Sys.sleep(time = 15)
+  Sys.sleep(time = 5)
   return(RIDE(url))
 }
 
